@@ -194,26 +194,97 @@ uv run python -m src.compiler.tracker log --n 20
 
 ## Adding a New Country
 
+All country data comes from the [legalize-dev](https://github.com/legalize-dev) organization — each repo is a country's legislation as Markdown files with git history.
+
+### Step 1 — Add the submodule
+
+Replace `XX` with the country code (e.g. `fr`, `de`, `us`):
+
 ```bash
-# 1. Add the submodule
-git submodule add <legalize-XX-url> legalize-XX
+git submodule add https://github.com/legalize-dev/legalize-XX.git legalize-XX
 git submodule update --init legalize-XX
+```
 
-# 2. Compile in Claude Code
-/compile XX --limit 20    # test run first
-/compile XX               # full run in batches
+### Step 2 — Compile in Claude Code
 
-# 3. Build the index
+```bash
+claude .
+```
+
+Then run:
+
+```bash
+/compile XX --limit 20    # test run — first 20 laws
+/compile XX               # full run (use --limit N and repeat in batches for large countries)
+```
+
+### Step 3 — Build the search index
+
+```bash
 /index --country XX
+```
+
+### Step 4 — Query
+
+```bash
+/qa What are the employment rights in France?
+/search data protection --country fr
+```
+
+### Tips for large countries
+
+The US (`legalize-us`) has 60,000+ sections and Portugal (`legalize-pt`) has 109,000+ norms. Compile in batches by rank:
+
+```bash
+/compile us --rank statute --limit 50
+/compile pt --rank lei --limit 50
+```
+
+Check progress between runs:
+
+```bash
+uv run python -m src.compiler.tracker status --jurisdiction us
 ```
 
 ---
 
-## Country Coverage
+## Available Countries
 
-| Submodule | Coverage | Source |
-|-----------|----------|--------|
-| `legalize-es` | Spain — 8,600+ national laws + 17 autonomous communities | [legalize.dev](https://legalize.dev) |
+All 28 countries are available from [github.com/legalize-dev](https://github.com/legalize-dev). Add any as a submodule using the instructions above.
+
+| Country | Code | Submodule | Laws | Source |
+|---------|------|-----------|------|--------|
+| 🇦🇩 Andorra | `ad` | `legalize-ad` | — | BOPA |
+| 🇦🇷 Argentina | `ar` | `legalize-ar` | — | Infoleg |
+| 🇦🇹 Austria | `at` | `legalize-at` | — | RIS |
+| 🇧🇪 Belgium | `be` | `legalize-be` | — | Justel |
+| 🇨🇱 Chile | `cl` | `legalize-cl` | — | BCN / Ley Chile |
+| 🇨🇿 Czech Republic | `cz` | `legalize-cz` | — | ⚠️ Under development |
+| 🇩🇰 Denmark | `dk` | `legalize-dk` | — | retsinformation.dk |
+| 🇪🇪 Estonia | `ee` | `legalize-ee` | — | Riigi Teataja |
+| 🇫🇮 Finland | `fi` | `legalize-fi` | — | Finlex |
+| 🇫🇷 France | `fr` | `legalize-fr` | — | Légifrance |
+| 🇩🇪 Germany | `de` | `legalize-de` | — | gesetze-im-internet.de |
+| 🇬🇷 Greece | `gr` | `legalize-gr` | — | ΦΕΚ Α' |
+| 🇮🇪 Ireland | `ie` | `legalize-ie` | — | legislation.ie |
+| 🇮🇹 Italy | `it` | `legalize-it` | — | Normattiva |
+| 🇰🇷 South Korea | `kr` | `legalize-kr` | — | 국가법령정보센터 |
+| 🇱🇻 Latvia | `lv` | `legalize-lv` | — | likumi.lv |
+| 🇱🇹 Lithuania | `lt` | `legalize-lt` | — | TAR / data.gov.lt |
+| 🇱🇺 Luxembourg | `lu` | `legalize-lu` | — | legilux.lu |
+| 🇳🇱 Netherlands | `nl` | `legalize-nl` | — | Basis Wetten Bestand |
+| 🇳🇴 Norway | `no` | `legalize-no` | — | Lovdata (NLOD 2.0) |
+| 🇵🇱 Poland | `pl` | `legalize-pl` | — | Sejm / Dziennik Ustaw |
+| 🇵🇹 Portugal | `pt` | `legalize-pt` | 109K+ | Diário da República |
+| 🇸🇰 Slovakia | `sk` | `legalize-sk` | — | Slov-Lex |
+| 🇪🇸 Spain | `es` | `legalize-es` ✅ | 12K+ | BOE |
+| 🇸🇪 Sweden | `se` | `legalize-se` | — | riksdagen.se |
+| 🇺🇦 Ukraine | `ua` | `legalize-ua` | — | Verkhovna Rada |
+| 🇬🇧 United Kingdom | `gb` | — | — | Coming soon |
+| 🇺🇸 United States | `us` | `legalize-us` | 60K+ | US Code |
+| 🇺🇾 Uruguay | `uy` | `legalize-uy` | — | IMPO |
+
+✅ = already added as submodule · ⚠️ = under active development, structure may change
 
 ---
 
