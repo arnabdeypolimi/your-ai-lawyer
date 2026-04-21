@@ -19,19 +19,6 @@ Raw country laws live in git submodules. Claude Code reads each law file directl
 
 ---
 
-## Why Your AI Lawyer?
-
-| Feature | This project | LexisNexis | Westlaw | GPT-4 |
-|---------|:-----------:|:----------:|:-------:|:-----:|
-| Open source | ✅ | ❌ | ❌ | ❌ |
-| No API key to query | ✅ | ❌ | ❌ | ❌ |
-| Citations to original text | ✅ | ✅ | ✅ | ❌ |
-| Region-level granularity | ✅ | ✅ | ✅ | ❌ |
-| Obsidian knowledge graph | ✅ | ❌ | ❌ | ❌ |
-| Offline vector search | ✅ | ❌ | ❌ | ❌ |
-| Pricing | Free OSS | $$$+ | $$$+ | Usage-based |
-
----
 
 ## Features
 
