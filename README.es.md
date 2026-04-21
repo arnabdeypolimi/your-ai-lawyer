@@ -13,7 +13,7 @@
 [![uv](https://img.shields.io/badge/gestionado%20con-uv-blueviolet)](https://github.com/astral-sh/uv)
 [![Claude Code](https://img.shields.io/badge/interfaz-Claude%20Code-orange)](https://claude.ai/code)
 
-**Base de conocimiento jurídico multipaís — legislación en bruto compilada en un grafo de conocimiento consultable mediante comandos slash de Claude Code**
+Una base de conocimiento jurídico que cita el texto original de verdad.
 
 [Comandos Slash](#comandos-slash) • [Arquitectura](#arquitectura) • [Añadir Países](#añadir-un-nuevo-país) • [Seguimiento](#seguimiento) • [Issues](https://github.com/arnabdeypolimi/your-ai-lawyer/issues)
 
@@ -21,28 +21,29 @@
 
 ---
 
-Las leyes originales de cada país viven como submódulos de git. Claude Code lee cada archivo de ley directamente y lo compila en un grafo de conocimiento compatible con Obsidian, con resúmenes, wikilinks, índices de conceptos y referencias cruzadas — sin necesidad de clave de API externa. Un almacén vectorial local de ChromaDB impulsa la búsqueda semántica y las respuestas RAG con citas en línea al texto original de la ley.
+Las leyes oficiales de cada país viven en submódulos de git. Claude Code las lee, escribe un resumen y un grafo de wikilinks en `knowledge/`, y un índice ChromaDB local te permite buscar o preguntar con citas al artículo real. Sin clave de API. Nada sale de tu máquina.
+
+España está lista (12 000+ leyes del BOE). 27 países más están a un `git submodule add` de distancia.
 
 <div align="center">
 
-![Grafo de conocimiento — 10 leyes de Cataluña compiladas y sus nodos de concepto en Obsidian](docs/knowledge-graph.png)
+![Grafo de Obsidian con las leyes de Cataluña compiladas y sus nodos de concepto](docs/knowledge-graph.png)
 
-*Vista de grafo en Obsidian de las primeras 10 leyes compiladas de Cataluña (nodos `BOE-A-*`) y sus archivos de índice de conceptos compartidos.*
+*Las primeras 10 leyes de Cataluña en la vista de grafo de Obsidian. Los nodos `BOE-A-*` son leyes; los más pequeños son páginas de conceptos compartidas a las que enlazan.*
 
 </div>
 
 ---
 
 
-## Características
+## Qué obtienes
 
-- Compila cualquier país o región de forma aislada — `/compile es-ct` solo para Cataluña, `/compile es` para toda España
-- La salida del grafo de conocimiento es Markdown válido de Obsidian con `[[wikilinks]]`, nodos de concepto y referencias cruzadas
-- Índice ChromaDB de dos colecciones (resúmenes compilados + fragmentos de artículos originales) para una recuperación de alta precisión
-- Seguimiento mediante manifiesto + índice — la recompilación omite archivos sin cambios; `index.json` y `compile.log` registran cada ejecución
-- `/lint` comprueba errores de compilación, notas huérfanas, wikilinks rotos y archivos no rastreados
-- `/qa` responde preguntas con citas en línea (`[BOE-A-XXXX-XXXXX, Art. N]`) — sin necesidad de clave API
-- Extensible a cualquier país: añade un submódulo, ejecuta `/compile`, listo
+- Ejecutas `/compile es-ct --limit 10` y Claude lee diez leyes de Cataluña, escribe resúmenes, extrae conceptos y construye los wikilinks.
+- El resultado es una bóveda válida de Obsidian. Ábrela en Obsidian y ahí tienes el grafo.
+- Dos colecciones ChromaDB: una para los resúmenes compilados, otra para fragmentos de artículos originales. Las consultas buscan en ambas.
+- `/qa` responde en prosa con citas del tipo `[BOE-A-XXXX-XXXXX, Art. N]`. Puedes saltar al texto original.
+- Al recompilar se omiten los archivos que no han cambiado (comprobación por hash md5). Cada ejecución queda registrada.
+- `/lint` detecta huérfanos, wikilinks rotos y notas sin rastrear.
 
 ---
 
@@ -64,33 +65,40 @@ Requiere [uv](https://github.com/astral-sh/uv) y [Claude Code](https://claude.ai
 claude .
 ```
 
-### Elige tu idioma de salida (configuración inicial)
+### Elige un idioma (una sola vez)
 
 ```bash
-/setup            # pregunta por un idioma
-/setup es         # o establécelo directamente
+/setup            # interactivo
+/setup es         # directo
 ```
 
-Códigos soportados: `en` (inglés), `es` (español), `ca` (catalán), `fr` (francés), `it` (italiano), `de` (alemán), `pt` (portugués) — o cualquier código BCP-47 (se pasa directamente al modelo).
+De serie: `en`, `es`, `ca`, `fr`, `it`, `de`, `pt`. Cualquier otro código BCP-47 también funciona, simplemente se pasa al modelo tal cual.
 
-La configuración se guarda en `.claude/settings.json` bajo `env.OUTPUT_LANGUAGE` y se aplica a todas las ejecuciones futuras de `/compile` y respuestas de `/qa`. Las notas ya compiladas **no** se traducen retroactivamente; ejecuta `/compile <jurisdicción> --force` para volver a localizarlas.
+La elección se guarda en `.claude/settings.json` como `env.OUTPUT_LANGUAGE`. Los nuevos `/compile` y las respuestas de `/qa` lo recogen al momento. Las notas ya compiladas se quedan en el idioma en el que se escribieron — es a propósito. Cambia el ajuste, ejecuta `/compile <jurisdicción> --force` y las reescribes.
 
-### Compilar leyes
+### Compilar algunas leyes
+
+Empieza pequeño. Cataluña con límite 10 es una buena prueba:
 
 ```bash
-/compile es-ct --limit 10        # Cataluña — primeras 10 leyes (prueba)
-/compile es --rank constitucion  # España — solo leyes constitucionales
-/compile es                      # España — las 12 000+ leyes (en lotes)
+/compile es-ct --limit 10
+```
+
+Luego subes. Solo las constitucionales son unos 50 archivos; toda España son 12k+ y querrás ejecutarlo en lotes de varios cientos:
+
+```bash
+/compile es --rank constitucion
+/compile es
 ```
 
 ### Construir el índice de búsqueda
 
 ```bash
-/index                              # indexa España (por defecto)
+/index
 /index --country es --compiled-only
 ```
 
-### Consultar
+### Pregúntale algo
 
 ```bash
 /qa ¿Cuáles son los derechos de vivienda de los inquilinos en España?
@@ -98,12 +106,12 @@ La configuración se guarda en `.claude/settings.json` bajo `env.OUTPUT_LANGUAGE
 /search derecho a la educación --country es --n 10
 ```
 
-### Comprobar el estado
+### Comprobación rápida
 
 ```bash
-/lint                            # revisión completa
-/lint --jurisdiction es-ct       # limitado a Cataluña
-/lint --broken-links             # también escanea wikilinks rotos (más lento)
+/lint
+/lint --jurisdiction es-ct
+/lint --broken-links
 ```
 
 ---
@@ -119,7 +127,7 @@ La configuración se guarda en `.claude/settings.json` bajo `env.OUTPUT_LANGUAGE
 | `/qa <pregunta>` | Respuesta RAG con citas en línea |
 | `/lint [--jurisdiction X] [--broken-links]` | Revisión de salud de la base de conocimiento |
 
-Jurisdicciones soportadas para España: `es` (nacional), `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc`.
+Códigos regionales de España: `es` para nacional, más `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc` para las 17 comunidades autónomas.
 
 ---
 
@@ -165,9 +173,9 @@ data/chroma/
   citas: [BOE-A-XXXX-XXXXX, Art. N]
 ```
 
-### Formato de nota compilada
+### Cómo se ve una nota compilada
 
-Cada `knowledge/laws/es/<identifier>.md` contiene:
+Cada `knowledge/laws/es/<identifier>.md` empieza con frontmatter YAML:
 
 ```yaml
 ---
@@ -181,7 +189,7 @@ compiled_at: 2026-04-21
 ---
 ```
 
-Seguido de: **Resumen**, **Disposiciones clave**, **Referencias cruzadas** (`[[wikilinks]]`), **Deroga**, **Desarrolla**, **Conceptos**, y un enlace al archivo original. La carpeta `knowledge/` es una bóveda Obsidian válida.
+Después un resumen, las disposiciones clave (en bullets), referencias cruzadas como wikilinks, las relaciones de supersedes/implements si aplica, las etiquetas de concepto, y una ruta de vuelta al archivo original. `knowledge/` es una bóveda válida de Obsidian — apunta Obsidian ahí y el grafo aparece.
 
 ---
 
@@ -207,55 +215,24 @@ uv run python -m src.compiler.tracker log --n 20
 
 ## Añadir un Nuevo País
 
-Todos los datos de los países provienen de la organización [legalize-dev](https://github.com/legalize-dev) — cada repo es la legislación de un país como archivos Markdown con historial de git.
+Toda la legislación en bruto viene de [legalize-dev](https://github.com/legalize-dev) — un repo por país, Markdown + frontmatter YAML, mantenido por esa organización.
 
-### Paso 1 — Añadir el submódulo
-
-Reemplaza `XX` con el código del país (por ejemplo, `fr`, `de`, `us`):
+Sustituye `XX` por un código de país de la tabla de abajo y ejecuta:
 
 ```bash
 git submodule add https://github.com/legalize-dev/legalize-XX.git legalize-XX
 git submodule update --init legalize-XX
-```
-
-### Paso 2 — Compilar en Claude Code
-
-```bash
 claude .
-```
-
-Luego ejecuta:
-
-```bash
-/compile XX --limit 20    # prueba — primeras 20 leyes
-/compile XX               # ejecución completa (usa --limit N y repite en lotes para países grandes)
-```
-
-### Paso 3 — Construir el índice de búsqueda
-
-```bash
+/compile XX --limit 20
 /index --country XX
-```
-
-### Paso 4 — Consultar
-
-```bash
 /qa ¿Cuáles son los derechos laborales en Francia?
-/search protección de datos --country fr
 ```
 
-### Consejos para países grandes
-
-EE. UU. (`legalize-us`) tiene 60 000+ secciones y Portugal (`legalize-pt`) tiene 109 000+ normas. Compila por lotes según el rango:
+Con los grandes (EE. UU. tiene 60k+ secciones, Portugal 109k+ normas) no intentes compilar todo de golpe. Hazlo en lotes por rango legal y mira el tracker de vez en cuando:
 
 ```bash
 /compile us --rank statute --limit 50
 /compile pt --rank lei --limit 50
-```
-
-Consulta el progreso entre ejecuciones:
-
-```bash
 uv run python -m src.compiler.tracker status --jurisdiction us
 ```
 
@@ -263,7 +240,7 @@ uv run python -m src.compiler.tracker status --jurisdiction us
 
 ## Países Disponibles
 
-Los 28 países están disponibles en [github.com/legalize-dev](https://github.com/legalize-dev). Añade cualquiera como submódulo usando las instrucciones anteriores.
+28 países. Eliges uno, lo añades como submódulo, compilas. España es el único ya conectado en este repo — el resto está a un `git submodule add` de distancia.
 
 | País | Código | Submódulo | Leyes | Fuente |
 |------|--------|-----------|-------|--------|
@@ -303,23 +280,23 @@ Los 28 países están disponibles en [github.com/legalize-dev](https://github.co
 
 ## Contribuir
 
-Abre un [issue](https://github.com/arnabdeypolimi/your-ai-lawyer/issues) para discutir nuevos submódulos de países, mejoras del pipeline o mejoras de consulta, y luego envía un PR.
+Primero issue, luego PR. Lo más útil ahora mismo: añadir un submódulo de un país nuevo, afinar los prompts de compilación, mejorar el linter, o escribir un extractor más fino para un rango legal concreto.
 
 ## Agradecimientos
 
-Los datos de legislación original son proporcionados por [legalize-dev](https://github.com/legalize-dev), una organización de código abierto que publica textos legales oficiales gubernamentales como repositorios Markdown estructurados. Cada submódulo de país se mantiene de forma independiente bajo su propia licencia — consulta el repositorio correspondiente para los términos. Este proyecto no sería posible sin su trabajo de recopilación, limpieza y versionado de fuentes legales de dominio público a través de 28 países.
+Sin [legalize-dev](https://github.com/legalize-dev) nada de esto funciona. Ellos son quienes scrapean, limpian y versionan las publicaciones oficiales del gobierno a Markdown; este repo solo compila un grafo encima. Cada submódulo de país se mantiene allá bajo su propia licencia.
 
 ## Condiciones de Uso
 
-Este proyecto está destinado **únicamente a uso personal y no comercial**.
+Solo uso personal y no comercial.
 
-La información compilada por esta herramienta no constituye asesoramiento legal. El/los mantenedor(es) de este proyecto no son abogados y no aceptan responsabilidad alguna por la exactitud, completitud o idoneidad de ningún resultado compilado, resultado de búsqueda o respuesta generada. Consulta siempre a un profesional del derecho cualificado para asesoramiento sobre tu situación específica.
+Esto no es asesoramiento legal. No soy abogado. Los resúmenes compilados y las respuestas de Q&A las genera un modelo de lenguaje a partir de fuentes gubernamentales públicas, que pueden estar desactualizadas o incompletas, y el modelo se puede equivocar. Si estás tomando una decisión que importa, habla con un abogado de verdad y verifícalo contra la fuente original a la que apuntan las citas.
 
-Al usar este proyecto aceptas que:
-- No lo utilizarás con fines comerciales sin obtener las licencias apropiadas para todos los textos legales subyacentes
-- El/los mantenedor(es) no son responsables de daños, pérdidas o consecuencias legales derivadas de la confianza en esta herramienta
-- Los textos legales pueden estar desactualizados, incompletos o compilados incorrectamente — verifica con fuentes oficiales del gobierno antes de actuar según cualquier información
+Al usar esto aceptas que:
+- No lo usarás comercialmente sin arreglar tú mismo las licencias aguas arriba
+- Los mantenedores no son responsables de lo que salga mal
+- Las leyes cambian. Las notas compiladas son una foto fija, no el estado actual
 
 ## Licencia
 
-MIT. Los textos legales de los submódulos son de dominio público (publicaciones oficiales gubernamentales). Consulta cada submódulo para sus propios términos de licencia.
+MIT para el código. Los textos legales en los submódulos son de dominio público (publicaciones oficiales gubernamentales) — revisa cada submódulo para los detalles.
