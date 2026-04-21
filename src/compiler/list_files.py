@@ -10,16 +10,25 @@ from .parser import iter_laws, parse_law
 
 ROOT = Path(__file__).parents[2]
 MANIFEST_PATH = ROOT / "data" / "manifest.json"
+INDEX_PATH = ROOT / "data" / "index.json"
 
 
 def _file_hash(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
-def _load_manifest() -> dict:
-    if MANIFEST_PATH.exists():
-        return json.loads(MANIFEST_PATH.read_text())
+def _load_json(path: Path) -> dict:
+    if path.exists():
+        return json.loads(path.read_text())
     return {}
+
+
+def _compiled_raw_paths(index: dict) -> set[str]:
+    return {
+        entry["raw_path"]
+        for entry in index.values()
+        if entry.get("status") == "compiled" and entry.get("raw_path")
+    }
 
 
 def main() -> None:
@@ -47,11 +56,17 @@ def main() -> None:
         )
         sys.exit(1)
 
-    manifest = _load_manifest()
+    manifest = _load_json(MANIFEST_PATH)
+    compiled_raw = _compiled_raw_paths(_load_json(INDEX_PATH))
     paths = iter_laws(submodule_dir, jurisdiction)
 
     if not args.force:
-        paths = [p for p in paths if manifest.get(str(p.relative_to(ROOT))) != _file_hash(p)]
+        def _needs_compile(p: Path) -> bool:
+            rel = str(p.relative_to(ROOT))
+            # Skip only when both signals agree the file is already compiled and unchanged
+            return not (manifest.get(rel) == _file_hash(p) and rel in compiled_raw)
+
+        paths = [p for p in paths if _needs_compile(p)]
 
     results = []
     for path in paths:

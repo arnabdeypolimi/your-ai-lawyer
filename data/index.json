@@ -98,5 +98,105 @@
     "raw_path": "legalize-es/es-ct/BOE-A-1984-3139.md",
     "note_path": "knowledge/laws/es/BOE-A-1984-3139.md",
     "error": null
+  },
+  "BOE-A-1984-9840": {
+    "identifier": "BOE-A-1984-9840",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1984-9840.md",
+    "note_path": "knowledge/laws/es/BOE-A-1984-9840.md",
+    "error": null
+  },
+  "BOE-A-1984-9841": {
+    "identifier": "BOE-A-1984-9841",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1984-9841.md",
+    "note_path": "knowledge/laws/es/BOE-A-1984-9841.md",
+    "error": null
+  },
+  "BOE-A-1985-14282": {
+    "identifier": "BOE-A-1985-14282",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1985-14282.md",
+    "note_path": "knowledge/laws/es/BOE-A-1985-14282.md",
+    "error": null
+  },
+  "BOE-A-1985-16448": {
+    "identifier": "BOE-A-1985-16448",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1985-16448.md",
+    "note_path": "knowledge/laws/es/BOE-A-1985-16448.md",
+    "error": null
+  },
+  "BOE-A-1985-18553": {
+    "identifier": "BOE-A-1985-18553",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1985-18553.md",
+    "note_path": "knowledge/laws/es/BOE-A-1985-18553.md",
+    "error": null
+  },
+  "BOE-A-1986-14177": {
+    "identifier": "BOE-A-1986-14177",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1986-14177.md",
+    "note_path": "knowledge/laws/es/BOE-A-1986-14177.md",
+    "error": null
+  },
+  "BOE-A-1986-32139": {
+    "identifier": "BOE-A-1986-32139",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1986-32139.md",
+    "note_path": "knowledge/laws/es/BOE-A-1986-32139.md",
+    "error": null
+  },
+  "BOE-A-1987-10011": {
+    "identifier": "BOE-A-1987-10011",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1987-10011.md",
+    "note_path": "knowledge/laws/es/BOE-A-1987-10011.md",
+    "error": null
+  },
+  "BOE-A-1987-14661": {
+    "identifier": "BOE-A-1987-14661",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1987-14661.md",
+    "note_path": "knowledge/laws/es/BOE-A-1987-14661.md",
+    "error": null
+  },
+  "BOE-A-1987-28478": {
+    "identifier": "BOE-A-1987-28478",
+    "jurisdiction": "es-ct",
+    "rank": "ley",
+    "status": "compiled",
+    "compiled_at": "2026-04-21T17:27:03Z",
+    "raw_path": "legalize-es/es-ct/BOE-A-1987-28478.md",
+    "note_path": "knowledge/laws/es/BOE-A-1987-28478.md",
+    "error": null
   }
 }

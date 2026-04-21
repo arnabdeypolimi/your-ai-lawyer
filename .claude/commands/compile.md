@@ -14,7 +14,11 @@ uv run python -m src.compiler.list_files <jurisdiction> [--limit N] [--force] [-
 
 This outputs a JSON array. Each object has: `path`, `identifier`, `title`, `rank`, `jurisdiction`, `country`, `status`, `publication_date`, `source`, `article_count`.
 
+`list_files` already excludes any file whose MD5 matches `data/manifest.json` AND is marked `status: compiled` in `data/index.json` — so already-compiled, unchanged files are never returned here.
+
 If the array is empty, report "Nothing to compile — all files are up to date."
+
+**Compile guarantee**: NEVER read or recompile a file that does not appear in this list. NEVER bypass this filter. If the user wants to recompile already-compiled files, they must pass `--force` explicitly.
 
 ## Step 2 — For each file in the list
 
