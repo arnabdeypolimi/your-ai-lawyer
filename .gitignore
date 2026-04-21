@@ -3,3 +3,4 @@ data/chroma/
 __pycache__/
 *.pyc
 .env
+knowledge/.obsidian/workspace.json
