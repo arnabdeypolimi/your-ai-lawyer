@@ -1,3 +1,9 @@
+<div align="center">
+
+<img src="docs/logo.svg" alt="Your AI Lawyer" width="420"/>
+
+</div>
+
 # Your AI Lawyer
 
 <div align="center">
