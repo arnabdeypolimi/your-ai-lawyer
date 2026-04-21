@@ -36,7 +36,8 @@ def save_manifest(manifest: dict) -> None:
 
 
 def is_changed(path: Path, manifest: dict) -> bool:
-    return manifest.get(str(path)) != _file_hash(path)
+    key = str(path.relative_to(ROOT)) if path.is_absolute() else str(path)
+    return manifest.get(key) != _file_hash(path)
 
 
 # ── index (per-law compilation status) ─────────────────────────────────────
@@ -62,7 +63,7 @@ def mark_compiled(
     index: dict,
 ) -> None:
     """Record a successful compilation in both manifest and index."""
-    manifest[str(raw_path)] = _file_hash(raw_path)
+    manifest[str(raw_path.relative_to(ROOT))] = _file_hash(raw_path)
     index[identifier] = {
         "identifier": identifier,
         "jurisdiction": jurisdiction,

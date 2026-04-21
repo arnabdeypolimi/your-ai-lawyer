@@ -51,7 +51,7 @@ def main() -> None:
     paths = iter_laws(submodule_dir, jurisdiction)
 
     if not args.force:
-        paths = [p for p in paths if manifest.get(str(p)) != _file_hash(p)]
+        paths = [p for p in paths if manifest.get(str(p.relative_to(ROOT))) != _file_hash(p)]
 
     results = []
     for path in paths:
