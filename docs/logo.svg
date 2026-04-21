@@ -1,51 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" role="img" aria-label="Your AI Lawyer logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" role="img" aria-label="Your AI Lawyer">
   <title>Your AI Lawyer</title>
+  <defs>
+    <radialGradient id="brainGrad" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="60%" stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </radialGradient>
+  </defs>
 
-  <!-- Balance beam -->
-  <line x1="170" y1="78" x2="470" y2="78" stroke="#1e3a8a" stroke-width="4" stroke-linecap="round"/>
-  <!-- Fulcrum top ornament -->
-  <circle cx="320" cy="68" r="9" fill="#1e3a8a"/>
-  <!-- Pillar -->
-  <line x1="320" y1="78" x2="320" y2="190" stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
-  <!-- Base -->
-  <rect x="272" y="188" width="96" height="8" rx="3" fill="#1e3a8a"/>
+  <!-- Brain silhouette (two hemispheres with gyri) -->
+  <g fill="url(#brainGrad)" stroke="#1e3a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M320 60
+             C 260 60, 210 90, 200 140
+             C 170 145, 150 175, 165 210
+             C 150 235, 170 270, 210 270
+             C 230 290, 270 290, 290 275
+             C 300 285, 310 285, 320 280
+             C 330 285, 340 285, 350 275
+             C 370 290, 410 290, 430 270
+             C 470 270, 490 235, 475 210
+             C 490 175, 470 145, 440 140
+             C 430 90, 380 60, 320 60 Z"/>
+  </g>
+  <!-- Central fissure -->
+  <path d="M320 62 C 318 130, 322 200, 320 278"
+        fill="none" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
 
-  <!-- Left hanging chain -->
-  <line x1="170" y1="78" x2="170" y2="108" stroke="#1e3a8a" stroke-width="2.5"/>
+  <!-- Gyri lines (left hemisphere) -->
+  <g fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" opacity="0.75">
+    <path d="M240 100 C 230 120, 245 135, 260 130"/>
+    <path d="M215 145 C 230 150, 240 165, 230 180"/>
+    <path d="M195 195 C 215 195, 230 210, 220 225"/>
+    <path d="M240 235 C 255 240, 270 255, 260 270"/>
+    <path d="M285 150 C 275 170, 290 185, 280 205"/>
+  </g>
+  <!-- Gyri lines (right hemisphere) -->
+  <g fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" opacity="0.75">
+    <path d="M400 100 C 410 120, 395 135, 380 130"/>
+    <path d="M425 145 C 410 150, 400 165, 410 180"/>
+    <path d="M445 195 C 425 195, 410 210, 420 225"/>
+    <path d="M400 235 C 385 240, 370 255, 380 270"/>
+    <path d="M355 150 C 365 170, 350 185, 360 205"/>
+  </g>
 
-  <!-- Left pan: knowledge graph cluster -->
-  <line x1="140" y1="128" x2="170" y2="115" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="200" y1="128" x2="170" y2="115" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="140" y1="128" x2="155" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="200" y1="128" x2="185" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="155" y1="158" x2="185" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="170" y1="115" x2="155" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="170" y1="115" x2="185" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <circle cx="170" cy="115" r="8" fill="#2563eb"/>
-  <circle cx="140" cy="128" r="6.5" fill="#3b82f6"/>
-  <circle cx="200" cy="128" r="6.5" fill="#3b82f6"/>
-  <circle cx="155" cy="158" r="5.5" fill="#60a5fa"/>
-  <circle cx="185" cy="158" r="5.5" fill="#60a5fa"/>
-
-  <!-- Right hanging chain -->
-  <line x1="470" y1="78" x2="470" y2="108" stroke="#1e3a8a" stroke-width="2.5"/>
-
-  <!-- Right pan: knowledge graph cluster -->
-  <line x1="440" y1="128" x2="470" y2="115" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="500" y1="128" x2="470" y2="115" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="440" y1="128" x2="455" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="500" y1="128" x2="485" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="455" y1="158" x2="485" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="470" y1="115" x2="455" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <line x1="470" y1="115" x2="485" y2="158" stroke="#93c5fd" stroke-width="1.6"/>
-  <circle cx="470" cy="115" r="8" fill="#2563eb"/>
-  <circle cx="440" cy="128" r="6.5" fill="#3b82f6"/>
-  <circle cx="500" cy="128" r="6.5" fill="#3b82f6"/>
-  <circle cx="455" cy="158" r="5.5" fill="#60a5fa"/>
-  <circle cx="485" cy="158" r="5.5" fill="#60a5fa"/>
-
-  <!-- Wordmark -->
-  <text x="320" y="235" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="600" fill="#1e3a8a" letter-spacing="1">
-    Your <tspan fill="#2563eb">AI</tspan> Lawyer
+  <!-- Wordmark centered over the brain -->
+  <text x="320" y="175"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="48"
+        font-weight="700"
+        fill="#0f172a"
+        letter-spacing="2">
+    Your <tspan fill="#1e3a8a">AI</tspan> Lawyer
   </text>
 </svg>
