@@ -17,6 +17,14 @@
 
 Raw country laws live in git submodules. Claude Code reads each law file directly and compiles it into an Obsidian-compatible knowledge graph with summaries, wikilinks, concept indexes, and cross-references — no external API key required. A local ChromaDB vector store powers semantic search and RAG-based Q&A with inline citations to original law text.
 
+<div align="center">
+
+![Knowledge graph — 10 compiled Cataluña laws and their concept nodes in Obsidian](docs/knowledge-graph.png)
+
+*Obsidian graph view of the first 10 compiled Cataluña laws (`BOE-A-*` nodes) and their shared concept index files.*
+
+</div>
+
 ---
 
 
