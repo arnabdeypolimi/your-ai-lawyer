@@ -1,56 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" role="img" aria-label="Your AI Lawyer">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 140" role="img" aria-label="Your AI Lawyer">
   <title>Your AI Lawyer</title>
-  <defs>
-    <radialGradient id="brainGrad" cx="50%" cy="45%" r="60%">
-      <stop offset="0%" stop-color="#dbeafe"/>
-      <stop offset="60%" stop-color="#93c5fd"/>
-      <stop offset="100%" stop-color="#2563eb"/>
-    </radialGradient>
-  </defs>
-
-  <!-- Brain silhouette (two hemispheres with gyri) -->
-  <g fill="url(#brainGrad)" stroke="#1e3a8a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M320 60
-             C 260 60, 210 90, 200 140
-             C 170 145, 150 175, 165 210
-             C 150 235, 170 270, 210 270
-             C 230 290, 270 290, 290 275
-             C 300 285, 310 285, 320 280
-             C 330 285, 340 285, 350 275
-             C 370 290, 410 290, 430 270
-             C 470 270, 490 235, 475 210
-             C 490 175, 470 145, 440 140
-             C 430 90, 380 60, 320 60 Z"/>
-  </g>
-  <!-- Central fissure -->
-  <path d="M320 62 C 318 130, 322 200, 320 278"
-        fill="none" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/>
-
-  <!-- Gyri lines (left hemisphere) -->
-  <g fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" opacity="0.75">
-    <path d="M240 100 C 230 120, 245 135, 260 130"/>
-    <path d="M215 145 C 230 150, 240 165, 230 180"/>
-    <path d="M195 195 C 215 195, 230 210, 220 225"/>
-    <path d="M240 235 C 255 240, 270 255, 260 270"/>
-    <path d="M285 150 C 275 170, 290 185, 280 205"/>
-  </g>
-  <!-- Gyri lines (right hemisphere) -->
-  <g fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" opacity="0.75">
-    <path d="M400 100 C 410 120, 395 135, 380 130"/>
-    <path d="M425 145 C 410 150, 400 165, 410 180"/>
-    <path d="M445 195 C 425 195, 410 210, 420 225"/>
-    <path d="M400 235 C 385 240, 370 255, 380 270"/>
-    <path d="M355 150 C 365 170, 350 185, 360 205"/>
-  </g>
-
-  <!-- Wordmark centered over the brain -->
-  <text x="320" y="175"
+  <text x="320" y="92"
         text-anchor="middle"
         font-family="Georgia, 'Times New Roman', serif"
-        font-size="48"
+        font-size="64"
         font-weight="700"
-        fill="#0f172a"
+        fill="#dc2626"
         letter-spacing="2">
-    Your <tspan fill="#1e3a8a">AI</tspan> Lawyer
+    Your AI Lawyer
   </text>
 </svg>
