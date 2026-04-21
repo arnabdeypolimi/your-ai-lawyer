@@ -22,6 +22,14 @@ If the array is empty, report "Nothing to compile — all files are up to date."
 
 ## Step 2 — For each file in the list
 
+First, determine the user's preferred output language:
+
+```bash
+uv run python -m src.config get_language
+```
+
+This returns a code like `en`, `es`, `ca`, `fr`, `it`, `de`, `pt`. Use this language for the **Summary**, **Key Provisions**, and any new concept slugs you create. Identifiers, titles, YAML frontmatter, file paths, and cross-reference wikilinks stay verbatim in their source form. For concept slugs: if a file with an equivalent slug already exists under `knowledge/concepts/` (any language), reuse it to keep existing wikilinks valid; otherwise create a new slug in the chosen language.
+
 Use the Read tool to read the file at `path`. Then generate a compiled note with this exact structure:
 
 ```markdown

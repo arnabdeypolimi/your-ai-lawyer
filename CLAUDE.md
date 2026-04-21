@@ -9,12 +9,15 @@ uv sync                                    # install dependencies
 git submodule update --init --recursive    # initialize law submodules
 ```
 
+Then run `/setup` inside Claude Code to pick an output language (en/es/ca/fr/it/de/pt). The choice is stored in `.claude/settings.json → env.OUTPUT_LANGUAGE` and every `/compile` + `/qa` reads it via `uv run python -m src.config get_language`. Already-compiled notes are not retroactively translated — use `/compile --force` to re-localize.
+
 No API key required. `/compile` and `/qa` run entirely within Claude Code using its own intelligence and local ChromaDB embeddings.
 
 ## Slash commands (primary interface)
 
 | Command | Effect |
 |---------|--------|
+| `/setup es` | Pick output language (en/es/ca/fr/it/de/pt) for compiled notes + `/qa` |
 | `/compile es` | Compile all Spain laws (national + all regions) |
 | `/compile es-ct --limit 10` | Compile up to 10 Cataluña laws |
 | `/compile es --rank ley --limit 20` | Compile only `ley`-rank laws |

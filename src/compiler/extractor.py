@@ -5,6 +5,7 @@ import os
 
 import anthropic
 
+from .. import config
 from .parser import LawDocument
 
 _client: anthropic.Anthropic | None = None
@@ -17,28 +18,40 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
-_SYSTEM_PROMPT = """\
+_SYSTEM_PROMPT_TEMPLATE = """\
 You are a legal knowledge extraction assistant. Given the full text of a law document, \
 extract structured information in JSON. Return ONLY valid JSON, no markdown fences.
 
+Write the "summary" and "key_provisions" fields in {language_name} ({language_code}). \
+Concept slugs stay lowercase hyphenated in {language_name}. Identifiers stay verbatim.
+
 The JSON must have these fields:
-{
+{{
   "summary": "2-3 sentence plain-language summary of what this law does",
   "key_provisions": ["list of the most important rights, obligations, or rules (max 8, each ≤ 15 words)"],
   "concepts": ["list of 3-8 legal concept tags, lowercase hyphenated, e.g. 'tenant-rights', 'data-protection'"],
   "cross_references": ["list of BOE identifiers or other law identifiers explicitly mentioned, e.g. 'BOE-A-1978-31229'"],
   "supersedes": ["identifiers this law explicitly replaces or repeals"],
   "implements": ["identifiers this law implements or develops (e.g. an EU directive number or constitution article)"]
-}
+}}
 
 Keep concepts concise and reusable across laws. Cross-references should only include \
 explicitly cited identifiers, not inferred ones.\
 """
 
 
-def extract(doc: LawDocument) -> dict:
-    """Call Claude API to extract structured knowledge from a law document."""
+def extract(doc: LawDocument, language: str | None = None) -> dict:
+    """Call Claude API to extract structured knowledge from a law document.
+
+    The ``language`` parameter controls the output language of prose fields
+    (summary, key_provisions, concepts). Defaults to the project config.
+    """
     client = _get_client()
+    lang = language or config.get_language()
+    system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(
+        language_name=config.language_name(lang),
+        language_code=lang,
+    )
 
     # Build a focused excerpt: first 6000 chars of body (covers most short laws fully,
     # and for long laws covers the preamble + early articles which carry most semantic weight)
@@ -63,7 +76,7 @@ def extract(doc: LawDocument) -> dict:
         system=[
             {
                 "type": "text",
-                "text": _SYSTEM_PROMPT,
+                "text": system_prompt,
                 "cache_control": {"type": "ephemeral"},
             }
         ],

@@ -62,6 +62,17 @@ Requires [uv](https://github.com/astral-sh/uv) and [Claude Code](https://claude.
 claude .
 ```
 
+### Pick your output language (one-time setup)
+
+```bash
+/setup            # prompts for a language
+/setup es         # or set it directly
+```
+
+Supported codes: `en` (English), `es` (Spanish), `ca` (Catalan), `fr` (French), `it` (Italian), `de` (German), `pt` (Portuguese) — or any BCP-47 code (passed straight through to the model).
+
+The setting is stored in `.claude/settings.json` under `env.OUTPUT_LANGUAGE` and applies to all future `/compile` runs and `/qa` answers. Already-compiled notes are **not** retroactively translated; run `/compile <jurisdiction> --force` to re-localize them.
+
 ### Compile laws
 
 ```bash
@@ -99,6 +110,7 @@ claude .
 
 | Command | Description |
 |---------|-------------|
+| `/setup [<language-code>]` | Pick output language for compiled notes + `/qa` |
 | `/compile <jurisdiction> [--limit N] [--rank R] [--force]` | Compile raw laws into knowledge graph |
 | `/index [--country X] [--compiled-only] [--raw-only]` | Build / update ChromaDB vector index |
 | `/search <query> [--country X] [--rank R] [--n N]` | Semantic search with ranked results |

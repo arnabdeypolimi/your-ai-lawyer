@@ -19,7 +19,14 @@ For each result that has a `source_path` pointing to a `knowledge/laws/` file, u
 
 ## Step 3 — Answer with citations
 
+First, determine the user's preferred output language:
+
+```bash
+uv run python -m src.config get_language
+```
+
 Answer the question based on the retrieved content. Rules:
+0. Write the answer prose in the configured language (e.g. Spanish if `es`, Catalan if `ca`). Inline citations like **[BOE-A-XXXX-XXXXX, Art. N]** and identifiers stay unchanged regardless of language.
 1. Cite every claim inline as **[BOE-A-XXXX-XXXXX, Art. N]** or just **[BOE-A-XXXX-XXXXX]** if no specific article
 2. Distinguish national law from regional/autonomous community law when relevant
 3. If a law's `status` is not `in_force`, note that it may be repealed or superseded
