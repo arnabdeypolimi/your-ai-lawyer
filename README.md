@@ -283,6 +283,17 @@ Open an [issue](https://github.com/arnabdeypolimi/your-ai-lawyer/issues) to disc
 
 Raw legislation data is provided by [legalize-dev](https://github.com/legalize-dev), an open-source organization that publishes official government law texts as structured Markdown repositories. Each country submodule is maintained independently under its own license — see the respective repo for terms. This project would not be possible without their work of collecting, cleaning, and versioning public-domain legal sources across 28 countries.
 
+## Terms of Use
+
+This project is intended for **personal and non-commercial use only**.
+
+The information compiled by this tool does not constitute legal advice. The maintainer(s) of this project are not lawyers and accept no responsibility or liability for the accuracy, completeness, or fitness for purpose of any compiled output, search result, or answer generated. Always consult a qualified legal professional for advice on your specific situation.
+
+By using this project you agree that:
+- You will not use it for commercial purposes without obtaining appropriate licenses for all underlying law texts
+- The maintainer(s) are not liable for any damages, losses, or legal consequences arising from reliance on this tool
+- Law texts may be outdated, incomplete, or incorrectly compiled — verify against official government sources before acting on any information
+
 ## License
 
 MIT. Law texts in submodules are public domain (official government publications). See each submodule for its own license terms.
