@@ -1,0 +1,15 @@
+[project]
+name = "your-ai-lawyer"
+version = "0.1.0"
+description = "Multi-country legal knowledge base with LLM compilation and Claude Code slash commands"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.96.0",
+    "chromadb>=1.5.8",
+    "python-frontmatter>=1.1.0",
+    "rich>=15.0.0",
+]
+
+[tool.uv]
+package = false
