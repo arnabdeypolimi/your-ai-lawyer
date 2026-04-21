@@ -1,123 +1,160 @@
 # Your AI Lawyer
 
-A multi-country legal knowledge base that compiles raw legislation into an Obsidian-compatible knowledge graph. Law submodules provide the raw data; Claude Code reads and compiles them into structured notes with wikilinks, concept indexes, and cross-references — no external API key required.
+<div align="center">
 
-## How it works
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue)](https://www.python.org/downloads/)
+[![uv](https://img.shields.io/badge/managed%20with-uv-blueviolet)](https://github.com/astral-sh/uv)
+[![Claude Code](https://img.shields.io/badge/interface-Claude%20Code-orange)](https://claude.ai/code)
 
-1. **Raw data** — Each country's laws live in a git submodule (`legalize-<country>/`), as markdown files with YAML frontmatter.
-2. **Compile** — The `/compile` slash command instructs Claude Code to read each law and write a structured compiled note to `knowledge/laws/<country>/`.
-3. **Index** — `/index` embeds the compiled notes and raw article chunks into a local ChromaDB vector store (no API key — uses local ONNX embeddings).
-4. **Query** — `/qa` runs a semantic search and answers with inline citations to the original law text.
+**Multi-country legal knowledge base — raw legislation compiled into a queryable knowledge graph via Claude Code slash commands**
 
-```
-legalize-es/          ← raw Spain laws (submodule)
-knowledge/
-  laws/es/            ← compiled notes with summaries, wikilinks, concepts
-  concepts/           ← concept index files with backlinks
-  jurisdictions/      ← per-country overview notes
-data/
-  index.json          ← per-law compilation status
-  compile.log         ← run history (NDJSON)
-  manifest.json       ← change detection hashes
-  chroma/             ← vector store (gitignored)
-src/
-  compiler/           ← parser, extractor, batch runner, tracker
-  indexer/            ← ChromaDB embedding pipeline
-  query/              ← semantic search
-```
+[Slash Commands](#slash-commands) • [Architecture](#architecture) • [Adding Countries](#adding-a-new-country) • [Tracking](#tracking) • [Issues](https://github.com/arnabdeypolimi/your-ai-lawyer/issues)
 
-## Setup
+</div>
+
+---
+
+Raw country laws live in git submodules. Claude Code reads each law file directly and compiles it into an Obsidian-compatible knowledge graph with summaries, wikilinks, concept indexes, and cross-references — no external API key required. A local ChromaDB vector store powers semantic search and RAG-based Q&A with inline citations to original law text.
+
+---
+
+## Why Your AI Lawyer?
+
+| Feature | This project | LexisNexis | Westlaw | GPT-4 |
+|---------|:-----------:|:----------:|:-------:|:-----:|
+| Open source | ✅ | ❌ | ❌ | ❌ |
+| No API key to query | ✅ | ❌ | ❌ | ❌ |
+| Citations to original text | ✅ | ✅ | ✅ | ❌ |
+| Region-level granularity | ✅ | ✅ | ✅ | ❌ |
+| Obsidian knowledge graph | ✅ | ❌ | ❌ | ❌ |
+| Offline vector search | ✅ | ❌ | ❌ | ❌ |
+| Pricing | Free OSS | $$$+ | $$$+ | Usage-based |
+
+---
+
+## Features
+
+- Compile any country or region in isolation — `/compile es-ct` for Cataluña only, `/compile es` for all Spain
+- Knowledge graph output is valid Obsidian markdown with `[[wikilinks]]`, concept nodes, and cross-references
+- Two-collection ChromaDB index (compiled summaries + raw article chunks) for high-precision retrieval
+- Manifest + index tracking — recompilation skips unchanged files; `index.json` and `compile.log` record every run
+- `/lint` checks for compilation errors, orphaned notes, broken wikilinks, and untracked files
+- `/qa` answers questions with inline citations (`[BOE-A-XXXX-XXXXX, Art. N]`) — no API key needed
+- Extensible to any country: add a submodule, run `/compile`, done
+
+---
+
+## Quick Start
+
+### Install
 
 ```bash
-git clone --recurse-submodules <repo-url>
+git clone --recurse-submodules https://github.com/arnabdeypolimi/your-ai-lawyer.git
 cd your-ai-lawyer
 uv sync
 ```
 
 Requires [uv](https://github.com/astral-sh/uv) and [Claude Code](https://claude.ai/code).
 
-## Usage
+### Open in Claude Code
 
-Open this folder in Claude Code. All interaction happens through slash commands:
+```bash
+claude .
+```
 
 ### Compile laws
 
+```bash
+/compile es-ct --limit 10       # Cataluña — first 10 laws (test run)
+/compile es --rank constitucion  # Spain — constitutional laws only
+/compile es                      # Spain — all 12,000+ laws (run in batches)
 ```
-/compile es                      # all Spain (national + all autonomous communities)
-/compile es-ct                   # Cataluña only
-/compile es-ct --limit 10        # test run — first 10 files
-/compile es --rank ley           # only laws of rank "ley"
-/compile es --force              # recompile even unchanged files
-```
-
-Compiled notes are written to `knowledge/laws/<country>/` as Obsidian-compatible markdown with:
-- Plain-language summary
-- Key provisions list
-- `[[wikilinks]]` to cross-referenced laws
-- Concept tags linking to `knowledge/concepts/`
-- Path back to the original source file
 
 ### Build the search index
 
-```
+```bash
 /index                           # index Spain (default)
-/index --country fr              # index a specific country
-/index --compiled-only           # skip raw chunk indexing
+/index --country es --compiled-only
 ```
 
 ### Query
 
-```
-/qa What are the rights of tenants in Spain?
-/qa What does the Spanish Constitution say about education?
-/qa Are there specific housing laws in Cataluña?
-```
-
-Answers always include inline citations (`[BOE-A-XXXX-XXXXX, Art. N]`) and a Sources section.
-
-### Search
-
-```
-/search housing rights --country es
-/search data protection --rank ley --n 10
+```bash
+/qa What are the housing rights of tenants in Spain?
+/qa Does Cataluña have its own data protection laws?
+/search right to education --country es --n 10
 ```
 
-### Check compilation status
-
-```
-/compile es --limit 0            # dry run — shows what needs compiling
-```
-
-Or directly:
+### Check health
 
 ```bash
-uv run python -m src.compiler.tracker status
-uv run python -m src.compiler.tracker status --jurisdiction es-ct
-uv run python -m src.compiler.tracker log --n 20
+/lint                            # full health check
+/lint --jurisdiction es-ct       # scoped to Cataluña
+/lint --broken-links             # also scan for broken wikilinks (slower)
 ```
 
-## Adding a new country
+---
 
-```bash
-git submodule add <legalize-XX-url> legalize-XX
-git submodule update --init legalize-XX
+## Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/compile <jurisdiction> [--limit N] [--rank R] [--force]` | Compile raw laws into knowledge graph |
+| `/index [--country X] [--compiled-only] [--raw-only]` | Build / update ChromaDB vector index |
+| `/search <query> [--country X] [--rank R] [--n N]` | Semantic search with ranked results |
+| `/qa <question>` | RAG answer with inline citations |
+| `/lint [--jurisdiction X] [--broken-links]` | Health check on knowledge base |
+
+Supported jurisdictions for Spain: `es` (national), `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc`.
+
+---
+
+## Architecture
+
+```
+your-ai-lawyer/
+├── legalize-es/              # Spain raw laws (git submodule, 12K+ files)
+├── knowledge/                # Compiled Obsidian vault
+│   ├── laws/es/              # One .md per law: summary, provisions, wikilinks
+│   ├── concepts/             # Concept index files with backlinks
+│   └── jurisdictions/        # Per-country overview notes
+├── data/
+│   ├── index.json            # Per-law compilation status
+│   ├── compile.log           # Run history (NDJSON)
+│   ├── manifest.json         # MD5 hashes for change detection
+│   └── chroma/               # ChromaDB vector store (gitignored)
+└── src/
+    ├── compiler/             # parser, extractor, batch, tracker, lint
+    ├── indexer/              # ChromaDB embedding pipeline
+    └── query/                # Semantic search
 ```
 
-Then in Claude Code:
+### Compilation pipeline
+
 ```
-/compile XX
-/index --country XX
+legalize-<country>/
+  raw markdown + YAML frontmatter
+          │
+          ▼  /compile (Claude Code reads + writes directly)
+          │   list_files.py  →  lists files needing compilation
+          │   tracker.py     →  records result in index.json + compile.log
+          │
+knowledge/laws/<country>/
+  compiled notes with [[wikilinks]]
+          │
+          ▼  /index (local ONNX embeddings — no API key)
+          │
+data/chroma/
+  compiled collection + raw_chunks collection
+          │
+          ▼  /qa or /search
+  citations: [BOE-A-XXXX-XXXXX, Art. N]
 ```
 
-## Country submodules
+### Compiled note format
 
-| Submodule | Coverage | Source |
-|-----------|----------|--------|
-| `legalize-es` | Spain — 8,600+ national laws + 17 autonomous communities | [legalize.dev](https://legalize.dev) |
-
-## Knowledge graph format
-
-Each compiled note (`knowledge/laws/es/BOE-A-XXXX-XXXXX.md`) contains:
+Each `knowledge/laws/es/<identifier>.md` contains:
 
 ```yaml
 ---
@@ -131,16 +168,59 @@ compiled_at: 2026-04-21
 ---
 ```
 
-Followed by Summary, Key Provisions, Cross-References, Supersedes, Implements, Concepts, and a link to the raw source file. The `knowledge/` directory is a valid Obsidian vault and can be opened directly in Obsidian.
+Followed by: **Summary**, **Key Provisions**, **Cross-References** (`[[wikilinks]]`), **Supersedes**, **Implements**, **Concepts**, and a link back to the raw source file. The `knowledge/` folder is a valid Obsidian vault.
 
-## Tech stack
+---
 
-- **Python 3.12** managed with [uv](https://github.com/astral-sh/uv)
-- **ChromaDB** — local vector store with ONNX embeddings
-- **python-frontmatter** — YAML + markdown parsing
-- **Claude Code** — compilation intelligence (slash commands)
-- **anthropic SDK** — optional, for automated batch compilation via `src/compiler/batch.py`
+## Tracking
+
+Three files in `data/` track compilation state:
+
+| File | Contents |
+|------|---------|
+| `manifest.json` | `{ raw_path: md5_hash }` — skips unchanged files on recompile |
+| `index.json` | Per-law record: `status`, `compiled_at`, `note_path`, `error` |
+| `compile.log` | NDJSON run history: timestamp, jurisdiction, counts, error IDs |
+
+Check status directly:
+
+```bash
+uv run python -m src.compiler.tracker status
+uv run python -m src.compiler.tracker status --jurisdiction es-ct
+uv run python -m src.compiler.tracker log --n 20
+```
+
+---
+
+## Adding a New Country
+
+```bash
+# 1. Add the submodule
+git submodule add <legalize-XX-url> legalize-XX
+git submodule update --init legalize-XX
+
+# 2. Compile in Claude Code
+/compile XX --limit 20    # test run first
+/compile XX               # full run in batches
+
+# 3. Build the index
+/index --country XX
+```
+
+---
+
+## Country Coverage
+
+| Submodule | Coverage | Source |
+|-----------|----------|--------|
+| `legalize-es` | Spain — 8,600+ national laws + 17 autonomous communities | [legalize.dev](https://legalize.dev) |
+
+---
+
+## Contributing
+
+Open an [issue](https://github.com/arnabdeypolimi/your-ai-lawyer/issues) to discuss new country submodules, pipeline improvements, or query enhancements, then submit a PR.
 
 ## License
 
-Application code: MIT. Law texts in submodules are public domain (official government publications). See each submodule for its own license terms.
+MIT. Law texts in submodules are public domain (official government publications). See each submodule for its own license terms.
