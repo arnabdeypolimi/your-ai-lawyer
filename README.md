@@ -279,6 +279,10 @@ All 28 countries are available from [github.com/legalize-dev](https://github.com
 
 Open an [issue](https://github.com/arnabdeypolimi/your-ai-lawyer/issues) to discuss new country submodules, pipeline improvements, or query enhancements, then submit a PR.
 
+## Acknowledgements
+
+Raw legislation data is provided by [legalize-dev](https://github.com/legalize-dev), an open-source organization that publishes official government law texts as structured Markdown repositories. Each country submodule is maintained independently under its own license — see the respective repo for terms. This project would not be possible without their work of collecting, cleaning, and versioning public-domain legal sources across 28 countries.
+
 ## License
 
 MIT. Law texts in submodules are public domain (official government publications). See each submodule for its own license terms.
