@@ -1,0 +1,35 @@
+{
+  "enabledPlugins": {
+    "playwright@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "marketing-skills@marketingskills": true
+  },
+  "extraKnownMarketplaces": {
+    "marketingskills": {
+      "source": {
+        "source": "github",
+        "repo": "coreyhaines31/marketingskills"
+      }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git submodule *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(uv sync)",
+      "Bash(uv run *)",
+      "Bash(uv add *)",
+      "Bash(uv remove *)"
+    ]
+  }
+}
