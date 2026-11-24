@@ -13,3 +13,15 @@ def test_never_compiled_reports_untracked_files(repo, monkeypatch):
     second.write_text(RAW_CONTENT)
     run_tracker(monkeypatch, "mark", ID, RAW, NOTE, "es-ct", "ley")
     assert lint.check_never_compiled(tracker.load_manifest(), None) == [second]
+
+
+def test_never_compiled_excludes_marked_file_when_submodule_is_symlinked_inside_repo(
+    repo, monkeypatch
+):
+    (repo / "vendor").mkdir()
+    (repo / "legalize-es").rename(repo / "vendor" / "legalize-es")
+    (repo / "legalize-es").symlink_to(
+        repo / "vendor" / "legalize-es", target_is_directory=True
+    )
+    run_tracker(monkeypatch, "mark", ID, str(repo / RAW), NOTE, "es-ct", "ley")
+    assert lint.check_never_compiled(tracker.load_manifest(), None) == []

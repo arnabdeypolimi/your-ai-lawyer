@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,7 +22,11 @@ def _file_hash(path: Path) -> str:
 
 def _rel(path: Path) -> str:
     """Path relative to the repo root; relative inputs are taken as root-relative."""
-    return str((ROOT / path).resolve().relative_to(ROOT.resolve()))
+    lexical = Path(os.path.abspath(ROOT / path))
+    try:
+        return str(lexical.relative_to(ROOT))
+    except ValueError:
+        return str(lexical.resolve().relative_to(ROOT.resolve()))
 
 
 def _now() -> str:
@@ -132,7 +137,7 @@ def _cli_mark() -> None:
                                                 <jurisdiction> <rank>
     Called by the /compile slash command after Claude writes each note.
     """
-    if len(sys.argv) < 7:
+    if len(sys.argv) != 7:
         print(
             "Usage: python -m src.compiler.tracker mark "
             "<identifier> <raw_path> <note_path> <jurisdiction> <rank>",

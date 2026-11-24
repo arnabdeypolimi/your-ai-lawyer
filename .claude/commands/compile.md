@@ -98,13 +98,15 @@ For each concept tag in the note's Concepts section:
 After writing each note, run:
 
 ```bash
-uv run python -m src.compiler.tracker mark <identifier> <raw_path> <note_path> <jurisdiction> <rank>
+uv run python -m src.compiler.tracker mark <identifier> <raw_path> <note_path> <jurisdiction> "<rank>"
 ```
+
+Keep the quotes around the rank: a rank can contain spaces (e.g. "real decreto legislativo").
 
 If reading or writing a file fails, run instead:
 
 ```bash
-uv run python -m src.compiler.tracker error <identifier> <raw_path> <jurisdiction> <rank> "<error message>"
+uv run python -m src.compiler.tracker error <identifier> <raw_path> <jurisdiction> "<rank>" "<error message>"
 ```
 
 ## Step 5 — Generate jurisdiction overview
@@ -125,7 +127,7 @@ Record the run in `data/compile.log`:
 uv run python -m src.compiler.tracker log-run <jurisdiction> --compiled <number of notes written> [--error-ids <identifier> ...]
 ```
 
-`<jurisdiction>` is the first token of the arguments, unchanged. Pass `--error-ids` only if some files errored, listing every identifier you recorded with `tracker error`.
+`<jurisdiction>` is the first token of the arguments, unchanged. Pass `--error-ids` only if some files errored, listing every identifier you recorded with `tracker error`. Skip this step if Step 1 returned an empty list.
 
 ## Step 7 — Report
 
