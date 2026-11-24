@@ -38,6 +38,7 @@ uv run python -m src.compiler.tracker log --n 10              # recent compile r
 uv run python -m src.indexer.embed --country es --compiled-only
 uv run python -m src.query.search "right to housing" --country es
 uv run python -m src.compiler.jurisdictions es
+uv run pytest                                                 # run the test suite
 ```
 
 ## Architecture
@@ -76,6 +77,7 @@ uv run python -m src.compiler.tracker status [--jurisdiction es-ct]
 uv run python -m src.compiler.tracker log [--n 20]
 uv run python -m src.compiler.tracker mark <id> <raw> <note> <jur> <rank>
 uv run python -m src.compiler.tracker error <id> <raw> <jur> <rank> <msg>
+uv run python -m src.compiler.tracker log-run <jur> --compiled N [--skipped N] [--error-ids <id> ...]
 ```
 
 ### Submodule convention

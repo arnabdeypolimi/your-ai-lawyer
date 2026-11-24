@@ -117,7 +117,17 @@ uv run python -m src.compiler.jurisdictions <country_prefix>
 
 where `country_prefix` is the first part of the jurisdiction (e.g. `es` for `es-ct`).
 
-## Step 6 — Report
+## Step 6 — Log the run
+
+Record the run in `data/compile.log`:
+
+```bash
+uv run python -m src.compiler.tracker log-run <jurisdiction> --compiled <number of notes written> [--error-ids <identifier> ...]
+```
+
+`<jurisdiction>` is the first token of the arguments, unchanged. Pass `--error-ids` only if some files errored, listing every identifier you recorded with `tracker error`.
+
+## Step 7 — Report
 
 Show a summary:
 - Files compiled (with identifiers)

@@ -19,6 +19,11 @@ def _file_hash(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
+def _rel(path: Path) -> str:
+    """Path relative to the repo root; relative inputs are taken as root-relative."""
+    return str((ROOT / path).resolve().relative_to(ROOT.resolve()))
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -63,15 +68,16 @@ def mark_compiled(
     index: dict,
 ) -> None:
     """Record a successful compilation in both manifest and index."""
-    manifest[str(raw_path.relative_to(ROOT))] = _file_hash(raw_path)
+    rel_raw = _rel(raw_path)
+    manifest[rel_raw] = _file_hash(ROOT / raw_path)
     index[identifier] = {
         "identifier": identifier,
         "jurisdiction": jurisdiction,
         "rank": rank,
         "status": "compiled",
         "compiled_at": _now(),
-        "raw_path": str(raw_path.relative_to(ROOT)),
-        "note_path": str(note_path.relative_to(ROOT)),
+        "raw_path": rel_raw,
+        "note_path": _rel(note_path),
         "error": None,
     }
 
@@ -90,7 +96,7 @@ def mark_error(
         "rank": rank,
         "status": "error",
         "compiled_at": _now(),
-        "raw_path": str(raw_path.relative_to(ROOT)),
+        "raw_path": _rel(raw_path),
         "note_path": None,
         "error": error,
     }
@@ -126,7 +132,7 @@ def _cli_mark() -> None:
                                                 <jurisdiction> <rank>
     Called by the /compile slash command after Claude writes each note.
     """
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 7:
         print(
             "Usage: python -m src.compiler.tracker mark "
             "<identifier> <raw_path> <note_path> <jurisdiction> <rank>",
@@ -157,8 +163,8 @@ def _cli_error() -> None:
         )
         sys.exit(1)
 
-    _, _, identifier, raw_path_str, jurisdiction, rank = sys.argv[1:7]
-    error_msg = " ".join(sys.argv[7:]) if len(sys.argv) > 7 else "unknown error"
+    identifier, raw_path_str, jurisdiction, rank = sys.argv[2:6]
+    error_msg = " ".join(sys.argv[6:]) or "unknown error"
     raw_path = Path(raw_path_str)
 
     index = load_index()
@@ -197,6 +203,33 @@ def _cli_status() -> None:
         print(f"  ... and {len(rows) - 50} more")
 
 
+def _cli_log_run() -> None:
+    """
+    Usage: python -m src.compiler.tracker log-run <jurisdiction>
+                --compiled N [--skipped N] [--error-ids <id> ...]
+    Append a compile run entry to data/compile.log.
+    """
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("jurisdiction")
+    p.add_argument("--compiled", type=int, required=True)
+    p.add_argument("--skipped", type=int, default=0)
+    p.add_argument("--error-ids", nargs="*", default=[])
+    args = p.parse_args(sys.argv[2:])
+
+    log_run(
+        args.jurisdiction,
+        args.compiled,
+        args.skipped,
+        len(args.error_ids),
+        args.error_ids,
+    )
+    print(
+        f"Logged run: {args.jurisdiction} compiled={args.compiled} "
+        f"skipped={args.skipped} errors={len(args.error_ids)}"
+    )
+
+
 def _cli_log() -> None:
     """
     Usage: python -m src.compiler.tracker log [--n 20]
@@ -228,6 +261,7 @@ def main() -> None:
         "error": _cli_error,
         "status": _cli_status,
         "log": _cli_log,
+        "log-run": _cli_log_run,
     }
     if len(sys.argv) < 2 or sys.argv[1] not in subcommands:
         print(f"Usage: python -m src.compiler.tracker <{'|'.join(subcommands)}>")

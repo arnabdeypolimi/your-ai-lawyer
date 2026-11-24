@@ -46,7 +46,7 @@ def check_never_compiled(manifest: dict, jurisdiction: str | None) -> list[Path]
             if jurisdiction and not jur_dir.name.startswith(jurisdiction):
                 continue
             for md in jur_dir.glob("*.md"):
-                if str(md) not in manifest:
+                if str(md.relative_to(ROOT)) not in manifest:
                     never.append(md)
     return never
 
