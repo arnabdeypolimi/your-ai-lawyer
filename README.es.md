@@ -21,7 +21,7 @@ Una base de conocimiento jurídico que cita el texto original de verdad.
 
 ---
 
-Las leyes oficiales de cada país viven en submódulos de git. Claude Code las lee, escribe un resumen y un grafo de wikilinks en `knowledge/`, y un índice ChromaDB local te permite buscar o preguntar con citas al artículo real. Sin clave de API. Nada sale de tu máquina.
+Las leyes oficiales de cada país viven en submódulos de git. Claude Code las lee, escribe un resumen y un grafo de wikilinks en `knowledge/`, y un índice ChromaDB local te permite buscar o preguntar con citas al artículo real. Sin clave de API aparte: el trabajo del modelo pasa por tu sesión de Claude Code, y los embeddings y el índice de búsqueda se quedan en tu máquina.
 
 España está lista (12 000+ leyes del BOE). 27 países más están a un `git submodule add` de distancia.
 
@@ -44,6 +44,13 @@ España está lista (12 000+ leyes del BOE). 27 países más están a un `git su
 - `/qa` responde en prosa con citas del tipo `[BOE-A-XXXX-XXXXX, Art. N]`. Puedes saltar al texto original.
 - Al recompilar se omiten los archivos que no han cambiado (comprobación por hash md5). Cada ejecución queda registrada.
 - `/lint` detecta huérfanos, wikilinks rotos y notas sin rastrear.
+
+### Qué se ejecuta dónde
+
+- **Se queda en tu máquina:** las leyes originales, las notas compiladas, los embeddings (un modelo ONNX local) y el índice ChromaDB.
+- **Va a Anthropic a través de Claude Code:** el texto legal que lee `/compile`, y tus consultas de `/qa` y `/search` junto con los pasajes que recuperan. Se aplican las condiciones de datos de tu cuenta de Claude Code.
+
+Si quieres buscar sin ningún modelo de por medio, ejecútalo directamente: `uv run python -m src.query.search "derecho a la vivienda" --country es`.
 
 ---
 
@@ -288,15 +295,15 @@ Sin [legalize-dev](https://github.com/legalize-dev) nada de esto funciona. Ellos
 
 ## Condiciones de Uso
 
-Solo uso personal y no comercial.
-
 Esto no es asesoramiento legal. No soy abogado. Los resúmenes compilados y las respuestas de Q&A las genera un modelo de lenguaje a partir de fuentes gubernamentales públicas, que pueden estar desactualizadas o incompletas, y el modelo se puede equivocar. Si estás tomando una decisión que importa, habla con un abogado de verdad y verifícalo contra la fuente original a la que apuntan las citas.
 
 Al usar esto aceptas que:
-- No lo usarás comercialmente sin arreglar tú mismo las licencias aguas arriba
 - Los mantenedores no son responsables de lo que salga mal
 - Las leyes cambian. Las notas compiladas son una foto fija, no el estado actual
+- Los textos legales tienen sus propias condiciones de reutilización (ver Licencia). Si los redistribuyes o montas algo comercial encima, cumplirlas es cosa tuya
 
 ## Licencia
 
-MIT para el código. Los textos legales en los submódulos son de dominio público (publicaciones oficiales gubernamentales) — revisa cada submódulo para los detalles.
+MIT para el código: úsalo, modifícalo y distribúyelo, con fines comerciales o no.
+
+Esa licencia no cubre los textos legales. Viven en los submódulos de legalize-dev, cada uno con sus propias condiciones. El de España (`legalize-es`) sigue las condiciones de reutilización del BOE, que exigen citar la fuente. Revisa el `LICENSE` del submódulo antes de reutilizar el texto. Las notas compiladas en `knowledge/` derivan de esos textos; cada una conserva su enlace `source`.
