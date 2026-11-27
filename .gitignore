@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .env
 knowledge/.obsidian/workspace.json
+*.review/
+*.reviewed.pdf
+docs/superpowers/
+.superpowers/

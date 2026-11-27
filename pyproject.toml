@@ -7,6 +7,8 @@ requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.96.0",
     "chromadb>=1.5.8",
+    "pdfplumber==0.11.10",
+    "pypdf==7.1.1",
     "python-frontmatter>=1.1.0",
     "rich>=15.0.0",
 ]

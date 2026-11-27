@@ -26,6 +26,8 @@ No API key required. `/compile` and `/qa` run entirely within Claude Code using 
 | `/index --compiled-only` | Skip raw chunk indexing |
 | `/search housing rights --country es --n 10` | Semantic search |
 | `/qa What are tenant rights in Spain?` | RAG answer with citations |
+| `/review-contract ~/lease.pdf` | Check a contract PDF against the indexed laws; writes lease.reviewed.pdf |
+| `/contract-qa ~/lease.pdf <question>` | Follow-up questions about a reviewed contract |
 
 Supported region codes for Spain: `es` (national), `es-ct` (Cataluña), `es-md` (Madrid), `es-an` (Andalucía), `es-pv` (País Vasco), `es-ga` (Galicia), `es-vc` (Valencia), and 11 more.
 
@@ -37,6 +39,8 @@ uv run python -m src.compiler.tracker status --jurisdiction es-ct
 uv run python -m src.compiler.tracker log --n 10              # recent compile runs
 uv run python -m src.indexer.embed --country es --compiled-only
 uv run python -m src.query.search "right to housing" --country es
+uv run python -m src.contract.extract <pdf> [--status]
+uv run python -m src.contract.annotate <pdf> [--check]
 uv run python -m src.compiler.jurisdictions es
 uv run pytest                                                 # run the test suite
 ```
@@ -101,5 +105,20 @@ Document IDs: `compiled:<id>` and `raw:<id>:art<N>` / `raw:<id>:chunk<N>`. Searc
 ### Article parsing (`parser.py`)
 `_ARTICLE_RE` matches `###`–`######` headers containing `Artículo N`. Laws without this pattern (older texts, short orders) produce `articles=[]` and are chunked by paragraph in the indexer. Jurisdiction is inferred from the parent directory name when not in frontmatter.
 
+Known limitation: the pattern expects a line break straight after the article number, so `##### Artículo 36. Fianza.` and plain-line headings (`Artículo 15.`, the norm in regional laws) do not match. Almost every law is therefore indexed as `raw:<id>:chunk<N>` docs with an empty `article_num`, and a law where only a few headings happen to match is indexed from those articles alone (the Código Civil has 2,000 article headings and yields 2 docs). Search results rarely carry an article number; contract review takes article numbers from the raw law file instead (see below).
+
 ### `extractor.py` (optional, API-based alternative)
 Calls `claude-sonnet-4-6` with prompt caching (`cache_control: ephemeral`) to extract law knowledge programmatically. Used by `batch.py` for automated bulk compilation without Claude Code. Requires `ANTHROPIC_API_KEY`. Truncates law body to 6000 chars.
+
+### Contract review (`src/contract/`)
+`/review-contract` runs three steps: `extract.py` splits the PDF into numbered passages with word-level PDF coordinates (`passages.json`, `passages.txt`), Claude writes `findings.json`, then `annotate.py` validates it and paints highlights plus a page-1 summary note onto `<stem>.reviewed.pdf`. For `<dir>/<stem>.pdf` everything lands beside it: `<stem>.review/{passages.json,passages.txt,findings.json}` and `<stem>.reviewed.pdf`; the original is never modified.
+
+Findings carry `confidence` of `high` (red), `medium` (orange) or `low` (yellow). `high` requires a citation with an `article`; `medium`/`high` require at least one citation. `findings.py::validate` checks every citation through `ChromaCitationIndex` before the PDF is written: the identifier must be in the Chroma index, and an `article` must exist either as a `raw:<id>:art<N>` doc or as an `Artículo N` heading line in the law's raw source file (located via the `source_path` of its indexed chunks). An unknown identifier or article fails `--check` and the annotate run.
+
+CLIs: `extract <pdf>` extracts; `--status` prints `no-review`/`incomplete`/`reviewed`/`changed` (`reviewed` only once the annotated PDF exists and is newer than `findings.json`). `annotate <pdf>` validates + writes the PDF; `--check` validates without writing. Both exit 1 with one red line on error (missing file, no review data, changed contract, bad findings).
+
+Passage splitting (`extract.py::_split_passages`): a new passage starts at a page break, at a gap clearly larger than the page's own line spacing, after a sentence-ending line followed by a paragraph-sized gap, at a clause number (`1.`, `2.1.`, `3)`), at a change of font size, or when `MAX_PASSAGE_CHARS` would be exceeded. Scanned and rotated pages are skipped and reported in `skipped_pages`.
+
+Placement (`annotate.py`): a finding's `quote` is matched on whole words, ignoring case, punctuation and line-break hyphens; if it cannot be found the whole passage is highlighted. Highlights and the page-1 summary note carry their own appearance streams (macOS Quick Look draws nothing without them). With zero findings the note is shown open and says that no highlights does not mean the contract is sound.
+
+Staleness: `findings.json` is deleted by `extract` whenever the contract's md5 or the extracted passages change, so findings never point at the wrong text. The contract PDF itself is not git-ignored (only `*.review/` and `*.reviewed.pdf` are); `/review-contract` warns when it sits inside the repo.
