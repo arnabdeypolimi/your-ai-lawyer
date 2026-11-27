@@ -2,6 +2,7 @@ import sys
 
 import pytest
 
+from pdf_factory import make_pdf
 from src.compiler import lint, tracker
 
 RAW = "legalize-es/es-ct/BOE-A-TEST-1.md"
@@ -49,3 +50,23 @@ def repo(tmp_path, monkeypatch):
 def run_tracker(monkeypatch, *args):
     monkeypatch.setattr(sys, "argv", ["tracker", *args])
     tracker.main()
+
+
+CONTRACT_PAGES = [
+    [
+        (72, 770, "CONTRATO DE ARRENDAMIENTO"),
+        (72, 740, "PRIMERA. Objeto. El arrendador cede al arrendatario"),
+        (72, 726, "la vivienda situada en Barcelona."),
+        (72, 696, "SEGUNDA. Fianza. El arrendatario entrega una fian-"),
+        (72, 682, "za de tres mensualidades de renta."),
+        (72, 652, "1. El pago se hará por meses anticipados."),
+        (72, 638, "2. La renta se actualizará cada año."),
+    ],
+    [(72, 770, "TERCERA. Duración: un año.")],
+    [],
+]
+
+
+@pytest.fixture
+def contract_pdf(tmp_path):
+    return make_pdf(tmp_path / "lease.pdf", CONTRACT_PAGES)
