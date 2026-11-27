@@ -48,7 +48,7 @@ España está lista (12 000+ leyes del BOE). 27 países más están a un `git su
 ### Qué se ejecuta dónde
 
 - **Se queda en tu máquina:** las leyes originales, las notas compiladas, los embeddings (un modelo ONNX local) y el índice ChromaDB.
-- **Va a Anthropic a través de Claude Code:** el texto legal que lee `/compile`, y tus consultas de `/qa` y `/search` junto con los pasajes que recuperan. Se aplican las condiciones de datos de tu cuenta de Claude Code.
+- **Va a Anthropic a través de Claude Code:** el texto legal que lee `/compile`, tus consultas de `/qa` y `/search` junto con los pasajes que recuperan, y el texto de cualquier contrato que pases a `/review-contract` o `/contract-qa`. Se aplican las condiciones de datos de tu cuenta de Claude Code.
 
 Si quieres buscar sin ningún modelo de por medio, ejecútalo directamente: `uv run python -m src.query.search "derecho a la vivienda" --country es`.
 
@@ -113,6 +113,17 @@ Luego subes. Solo las constitucionales son unos 50 archivos; toda España son 12
 /search derecho a la educación --country es --n 10
 ```
 
+### Revisar un contrato
+
+```bash
+/review-contract ~/Downloads/lease.pdf
+/contract-qa ~/Downloads/lease.pdf ¿Puede el arrendador quedarse con toda la fianza?
+```
+
+Obtienes `lease.reviewed.pdf` junto al original. Las cláusulas que chocan con una ley de la base de conocimiento aparecen resaltadas: rojo para confianza alta, naranja para media y amarillo para baja. Cada resaltado lleva un comentario con la cita, y una nota en la página 1 recoge los términos que faltan, los temas que la base de conocimiento no cubre y las páginas que no se pudieron leer. El archivo original nunca se modifica. Los datos de la revisión se guardan en `lease.review/` para poder hacer preguntas más adelante.
+
+Solo conoce las leyes que tengas en el índice. Un contrato con pocos resaltados no es necesariamente un contrato correcto; revisa la lista de temas no cubiertos. Solo PDF con texto: las páginas escaneadas se omiten. Esto no es asesoramiento jurídico.
+
 ### Comprobación rápida
 
 ```bash
@@ -133,6 +144,8 @@ Luego subes. Solo las constitucionales son unos 50 archivos; toda España son 12
 | `/search <consulta> [--country X] [--rank R] [--n N]` | Búsqueda semántica con resultados ordenados |
 | `/qa <pregunta>` | Respuesta RAG con citas en línea |
 | `/lint [--jurisdiction X] [--broken-links]` | Revisión de salud de la base de conocimiento |
+| `/review-contract <pdf> [--country X] [--force]` | Revisa un contrato en PDF contra las leyes; devuelve una copia resaltada |
+| `/contract-qa <pdf> <pregunta>` | Preguntas de seguimiento sobre un contrato ya revisado |
 
 Códigos regionales de España: `es` para nacional, más `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc` para las 17 comunidades autónomas.
 
@@ -154,6 +167,7 @@ your-ai-lawyer/
 │   └── chroma/               # Almacén vectorial ChromaDB (gitignored)
 └── src/
     ├── compiler/             # parser, extractor, batch, tracker, lint
+    ├── contract/             # Revisión de contratos: extrae pasajes, valida hallazgos, anota el PDF
     ├── indexer/              # pipeline de embeddings ChromaDB
     └── query/                # búsqueda semántica
 ```

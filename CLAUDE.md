@@ -26,6 +26,8 @@ No API key required. `/compile` and `/qa` run entirely within Claude Code using 
 | `/index --compiled-only` | Skip raw chunk indexing |
 | `/search housing rights --country es --n 10` | Semantic search |
 | `/qa What are tenant rights in Spain?` | RAG answer with citations |
+| `/review-contract ~/lease.pdf` | Check a contract PDF against the indexed laws; writes lease.reviewed.pdf |
+| `/contract-qa ~/lease.pdf <question>` | Follow-up questions about a reviewed contract |
 
 Supported region codes for Spain: `es` (national), `es-ct` (Cataluña), `es-md` (Madrid), `es-an` (Andalucía), `es-pv` (País Vasco), `es-ga` (Galicia), `es-vc` (Valencia), and 11 more.
 
@@ -37,6 +39,8 @@ uv run python -m src.compiler.tracker status --jurisdiction es-ct
 uv run python -m src.compiler.tracker log --n 10              # recent compile runs
 uv run python -m src.indexer.embed --country es --compiled-only
 uv run python -m src.query.search "right to housing" --country es
+uv run python -m src.contract.extract <pdf> [--status]
+uv run python -m src.contract.annotate <pdf> [--check]
 uv run python -m src.compiler.jurisdictions es
 uv run pytest                                                 # run the test suite
 ```
@@ -103,3 +107,10 @@ Document IDs: `compiled:<id>` and `raw:<id>:art<N>` / `raw:<id>:chunk<N>`. Searc
 
 ### `extractor.py` (optional, API-based alternative)
 Calls `claude-sonnet-4-6` with prompt caching (`cache_control: ephemeral`) to extract law knowledge programmatically. Used by `batch.py` for automated bulk compilation without Claude Code. Requires `ANTHROPIC_API_KEY`. Truncates law body to 6000 chars.
+
+### Contract review (`src/contract/`)
+`/review-contract` runs three steps: `extract.py` splits the PDF into numbered passages with word-level PDF coordinates (`passages.json`, `passages.txt`), Claude writes `findings.json`, then `annotate.py` validates it and paints highlights plus a page-1 summary note onto `<stem>.reviewed.pdf`. For `<dir>/<stem>.pdf` everything lands beside it: `<stem>.review/{passages.json,passages.txt,findings.json}` and `<stem>.reviewed.pdf`; the original is never modified.
+
+Findings carry `confidence` of `high` (red), `medium` (orange) or `low` (yellow). `high` requires a citation with an `article`; `medium`/`high` require at least one citation. `findings.py::validate` checks every citation through `ChromaCitationIndex` before the PDF is written: the identifier must be in the Chroma index, and an `article` must exist either as a `raw:<id>:art<N>` doc or as an `Artículo N` heading line in the law's raw source file (located via the `source_path` of its indexed chunks). An unknown identifier or article fails `--check` and the annotate run.
+
+CLIs: `extract <pdf>` extracts; `--status` prints `no-review`/`reviewed`/`changed`. `annotate <pdf>` validates + writes the PDF; `--check` validates without writing. Both exit 1 with one red line on error (missing file, no review data, changed contract, bad findings).

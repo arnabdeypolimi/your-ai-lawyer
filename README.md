@@ -48,7 +48,7 @@ Spain is wired up (12,000+ laws from the BOE). 27 more countries are one `git su
 ### What runs where
 
 - **Stays on your machine:** the raw laws, the compiled notes, the embeddings (a local ONNX model) and the ChromaDB index.
-- **Goes to Anthropic through Claude Code:** the law text `/compile` reads, and your `/qa` and `/search` queries along with the passages they pull up. Whatever data terms apply to your Claude Code account apply here.
+- **Goes to Anthropic through Claude Code:** the law text `/compile` reads, your `/qa` and `/search` queries along with the passages they pull up, and the text of any contract you pass to `/review-contract` or `/contract-qa`. Whatever data terms apply to your Claude Code account apply here.
 
 If you want a search with no model in the loop, run it directly: `uv run python -m src.query.search "right to housing" --country es`.
 
@@ -113,6 +113,17 @@ Then scale up. Constitutional-only is ~50 files; all of Spain is 12k+ and you'll
 /search right to education --country es --n 10
 ```
 
+### Review a contract
+
+```bash
+/review-contract ~/Downloads/lease.pdf
+/contract-qa ~/Downloads/lease.pdf Can the landlord keep the whole deposit?
+```
+
+You get `lease.reviewed.pdf` next to the original. Clauses that conflict with a law in the knowledge base are highlighted: red for high confidence, orange for medium, yellow for low. Each highlight carries a comment with the citation, and a note on page 1 lists missing terms, topics the knowledge base does not cover, and pages that could not be read. The original file is never changed. Review data is kept in `lease.review/` so you can ask questions later.
+
+It only knows the laws in your index. A contract with few highlights is not necessarily a sound contract; check the "not covered" list. Text PDFs only: scanned pages are skipped. This is not legal advice.
+
 ### Sanity check
 
 ```bash
@@ -133,6 +144,8 @@ Then scale up. Constitutional-only is ~50 files; all of Spain is 12k+ and you'll
 | `/search <query> [--country X] [--rank R] [--n N]` | Semantic search with ranked results |
 | `/qa <question>` | RAG answer with inline citations |
 | `/lint [--jurisdiction X] [--broken-links]` | Health check on knowledge base |
+| `/review-contract <pdf> [--country X] [--force]` | Check a contract PDF against the laws; returns a highlighted copy |
+| `/contract-qa <pdf> <question>` | Ask follow-up questions about a reviewed contract |
 
 Spain's regional codes: `es` for national, plus `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc` for the 17 autonomous communities.
 
@@ -154,6 +167,7 @@ your-ai-lawyer/
 │   └── chroma/               # ChromaDB vector store (gitignored)
 └── src/
     ├── compiler/             # parser, extractor, batch, tracker, lint
+    ├── contract/             # Contract review: extract passages, validate findings, annotate PDF
     ├── indexer/              # ChromaDB embedding pipeline
     └── query/                # Semantic search
 ```
