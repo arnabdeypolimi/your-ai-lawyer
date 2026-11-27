@@ -1,6 +1,6 @@
 [project]
 name = "your-ai-lawyer"
-version = "0.1.0"
+version = "0.2.0"
 description = "Multi-country legal knowledge base with LLM compilation and Claude Code slash commands"
 readme = "README.md"
 requires-python = ">=3.12"
