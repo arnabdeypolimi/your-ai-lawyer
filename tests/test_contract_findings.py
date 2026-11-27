@@ -4,6 +4,7 @@ import chromadb
 import pytest
 
 from conftest import StubIndex, make_review
+from src.query import search
 from src.contract.findings import (
     ChromaCitationIndex, FindingsError, format_citation, load_review, validate,
 )
@@ -105,3 +106,26 @@ def test_citation_without_identifier_reports_one_problem():
     review["findings"][1]["citations"] = [{"identifier": "", "article": "5"}]
     problems = validate(review, IDS, StubIndex())
     assert problems == ["findings[1].citations[0]: identifier must be a non-empty string"]
+
+
+def test_chroma_citation_index_finds_articles_written_as_plain_lines(tmp_path, monkeypatch):
+    law = tmp_path / "legalize-es" / "es-ct" / "BOE-A-3.md"
+    law.parent.mkdir(parents=True)
+    law.write_text(
+        "# Ley\n\nArtículo 1.\n\nUno, según el\nartículo 7 de otra ley.\n\nArtículo 15 bis.\n\nQuince bis.\n\n"
+        "##### Artículo 20.\n\nVeinte.\n\nArtículo 3.º\n\nTres.\n\n**Artículo 4.**\n\nCuatro.\n"
+    )
+    monkeypatch.setattr(search, "ROOT", tmp_path)
+    client = chromadb.PersistentClient(path=str(tmp_path / "chroma"))
+    raw = client.get_or_create_collection("raw_chunks", metadata={"hnsw:space": "cosine"})
+    raw.add(ids=["raw:BOE-A-3:chunk0"], embeddings=[[0.1, 0.2, 0.3]], documents=["x"],
+            metadatas=[{"identifier": "BOE-A-3", "source_path": "legalize-es/es-ct/BOE-A-3.md"}])
+    raw.add(ids=["raw:BOE-A-4:chunk0"], embeddings=[[0.1, 0.2, 0.3]], documents=["x"],
+            metadatas=[{"identifier": "BOE-A-4", "source_path": "legalize-es/es-ct/missing.md"}])
+    index = ChromaCitationIndex(tmp_path / "chroma")
+    for article in ("1", "15 bis", "15", "20", "3", "4"):
+        assert index.has_article("BOE-A-3", article), article
+    for article in ("2", "5", "7", "150"):
+        assert not index.has_article("BOE-A-3", article), article
+    assert not index.has_article("BOE-A-4", "1")       # source file missing
+    assert not index.has_article("BOE-A-9", "1")       # law not indexed

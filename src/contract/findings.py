@@ -1,6 +1,7 @@
 """Validate findings.json and check its citations against the Chroma index."""
 
 import json
+import re
 from pathlib import Path
 from typing import Protocol
 
@@ -36,7 +37,19 @@ class ChromaCitationIndex:
         return False
 
     def has_article(self, identifier: str, article: str) -> bool:
-        return bool(self._raw.get(ids=[f"raw:{identifier}:art{article}"], include=[])["ids"])
+        if self._raw.get(ids=[f"raw:{identifier}:art{article}"], include=[])["ids"]:
+            return True
+        hit = self._raw.get(where={"identifier": identifier}, limit=1, include=["metadatas"])
+        source_path = (hit["metadatas"] or [{}])[0].get("source_path") if hit["ids"] else None
+        if not source_path:
+            return False
+        source = search.ROOT / source_path
+        if not source.exists():
+            return False
+        pattern = re.compile(
+            rf"^(?:#{{1,6}}\s+)?\**Art[ií]culo\s+{re.escape(str(article))}(?!\d)", re.MULTILINE
+        )
+        return bool(pattern.search(source.read_text()))
 
     def has_articles(self) -> bool:
         return self._raw.count() > 0
