@@ -26,6 +26,10 @@ AUTHOR = "Your AI Lawyer"
 DISCLAIMER = (
     "Automated review against the laws in this knowledge base. Not legal advice."
 )
+ZERO_FINDINGS_NOTE = (
+    "No highlights does not mean the contract is sound: "
+    "only the laws in this knowledge base were checked."
+)
 
 console = Console()
 
@@ -45,10 +49,15 @@ def locate_quote(words: list[dict], quote: str | None) -> list[int] | None:
         for c in _normalise(w["text"]):
             hay.append(c)
             owner.append(i)
-    pos = "".join(hay).find(needle)
-    if pos < 0:
-        return None
-    return sorted(set(owner[pos:pos + len(needle)]))
+    hay = "".join(hay)
+    starts = {pos for pos, i in enumerate(owner) if pos == 0 or owner[pos - 1] != i}
+    ends = {pos + 1 for pos, i in enumerate(owner) if pos == len(owner) - 1 or owner[pos + 1] != i}
+    pos = hay.find(needle)
+    while pos >= 0:
+        if pos in starts and pos + len(needle) in ends:
+            return sorted(set(owner[pos:pos + len(needle)]))
+        pos = hay.find(needle, pos + 1)
+    return None
 
 
 def line_rects(words: list[dict]) -> list[tuple[float, float, float, float]]:
@@ -80,6 +89,7 @@ def summary_text(review: dict, passages_doc: dict) -> str:
     parts = [
         f"Contract review: {review['contract_type']}",
         f"Findings: {counts['high']} high, {counts['medium']} medium, {counts['low']} low",
+        *([ZERO_FINDINGS_NOTE] if not review["findings"] else []),
         "Legend: red = high, orange = medium, yellow = low confidence that the clause "
         "conflicts with the cited law.",
         "",
@@ -158,11 +168,11 @@ def _highlight(writer: PdfWriter, rects, contents: str, color: str):
     return ann
 
 
-def _summary_note(writer: PdfWriter, text: str):
-    box = writer.pages[0].mediabox
+def _summary_note(writer: PdfWriter, text: str, open: bool):
+    box = writer.pages[0].cropbox
     right, top = float(box[2]), float(box[3])
     rect = (right - 40, top - 40, right - 20, top - 20)
-    ann = Text(text=text, rect=rect, open=False)
+    ann = Text(text=text, rect=rect, open=open)
     ann[NameObject("/T")] = TextStringObject(AUTHOR)
     ann[NameObject("/F")] = NumberObject(4)
     ann[NameObject("/C")] = ArrayObject(FloatObject(v) for v in _rgb(NOTE_COLOR))
@@ -188,7 +198,10 @@ def annotate(pdf: Path, passages_doc: dict, review: dict, out_path: Path) -> dic
             writer, line_rects(words), comment_text(finding), COLORS[finding["confidence"]]
         )
         writer.add_annotation(page_number=passage["page"] - 1, annotation=ann)
-    writer.add_annotation(page_number=0, annotation=_summary_note(writer, summary_text(review, passages_doc)))
+    writer.add_annotation(
+        page_number=0,
+        annotation=_summary_note(writer, summary_text(review, passages_doc), not review["findings"]),
+    )
     writer.write(str(out_path))
     return stats
 
@@ -211,8 +224,17 @@ def main() -> None:
     passages_path = rdir / "passages.json"
     if not passages_path.exists():
         _fail(f"No review data for {pdf}. Run /review-contract first.")
-    doc = json.loads(passages_path.read_text())
-    if doc.get("source_md5") != file_md5(pdf):
+    try:
+        doc = json.loads(passages_path.read_text())
+    except (OSError, ValueError):
+        doc = None
+    if (
+        not isinstance(doc, dict)
+        or not isinstance(doc.get("source_md5"), str)
+        or not isinstance(doc.get("passages"), list)
+    ):
+        _fail(f"Review data for {pdf} is unreadable. Re-run /review-contract.")
+    if doc["source_md5"] != file_md5(pdf):
         _fail("The contract changed since it was read; re-run /review-contract.")
     try:
         review = load_review(rdir / "findings.json")

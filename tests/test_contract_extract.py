@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import sys
 
 import pytest
@@ -13,7 +14,7 @@ from src.contract import extract as extract_module
 from src.contract.extract import (
     MAX_PASSAGE_CHARS, ExtractError, extract, review_status, write_outputs,
 )
-from src.contract.paths import review_dir
+from src.contract.paths import review_dir, reviewed_pdf
 
 
 def _write(path, data):
@@ -109,8 +110,17 @@ def test_review_status(contract_pdf):
     assert review_status(contract_pdf) == "no-review"
     write_outputs(contract_pdf, extract(contract_pdf))
     assert review_status(contract_pdf) == "no-review"          # passages but no findings yet
-    (review_dir(contract_pdf) / "findings.json").write_text("{}")
+    findings = review_dir(contract_pdf) / "findings.json"
+    findings.write_text("{}")
+    assert review_status(contract_pdf) == "incomplete"         # findings written, PDF never produced
+    out = reviewed_pdf(contract_pdf)
+    out.write_bytes(b"%PDF-1.4")
+    os.utime(findings, (1_000, 1_000))
+    os.utime(out, (2_000, 2_000))
     assert review_status(contract_pdf) == "reviewed"
+    os.utime(findings, (3_000, 3_000))                         # findings edited after the PDF was written
+    assert review_status(contract_pdf) == "incomplete"
+    os.utime(out, (4_000, 4_000))
     make_pdf(contract_pdf, CONTRACT_PAGES[:1])                 # the contract changes
     assert review_status(contract_pdf) == "changed"
 
@@ -164,3 +174,32 @@ def test_status_of_a_missing_contract_is_an_error(contract_pdf, monkeypatch, cap
         extract_module.main()
     assert exc.value.code == 1
     assert "File not found" in capsys.readouterr().out
+
+
+def test_double_spaced_paragraphs_stay_together(tmp_path):
+    para1 = [(72, 770 - 28 * i, f"Linea {i} del primer parrafo sin punto final") for i in range(5)]
+    para2 = [(72, 770 - 28 * 4 - 56 - 28 * i, f"Linea {i} del segundo parrafo sin punto final") for i in range(3)]
+    doc = extract(make_pdf(tmp_path / "double.pdf", [para1 + para2]))
+    assert [len({w["line"] for w in p["words"]}) for p in doc["passages"]] == [5, 3]
+
+
+def test_evenly_spaced_single_line_clauses_split_at_sentence_ends(tmp_path):
+    lines = [(72, 770 - 30 * i, f"Clausula {i}: el arrendatario pagara la renta.") for i in range(4)]
+    doc = extract(make_pdf(tmp_path / "list.pdf", [lines]))
+    assert len(doc["passages"]) == 4
+
+
+def test_a_directory_is_not_a_pdf(tmp_path):
+    with pytest.raises(ExtractError, match="Not a PDF"):
+        extract(tmp_path)
+
+
+def test_corrupt_passages_json_does_not_block_a_new_extract(contract_pdf):
+    write_outputs(contract_pdf, extract(contract_pdf))
+    rdir = review_dir(contract_pdf)
+    (rdir / "findings.json").write_text("{}")
+    (rdir / "passages.json").write_text("{broken")
+    assert review_status(contract_pdf) == "changed"
+    write_outputs(contract_pdf, extract(contract_pdf))
+    assert not (rdir / "findings.json").exists()
+    assert json.loads((rdir / "passages.json").read_text())["page_count"] == 3

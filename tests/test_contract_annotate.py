@@ -7,12 +7,13 @@ import pypdfium2
 import pytest
 from pypdf import PdfReader, PdfWriter
 from pypdf.annotations import Text
+from pypdf.generic import RectangleObject
 
 from conftest import CONTRACT_PAGES, StubIndex, make_review
 from pdf_factory import make_pdf
 from src.contract import annotate as annotate_module
 from src.contract.annotate import (
-    DISCLAIMER, annotate, line_rects, locate_quote, summary_text,
+    DISCLAIMER, ZERO_FINDINGS_NOTE, annotate, line_rects, locate_quote, summary_text,
 )
 from src.contract.extract import extract, write_outputs
 from src.contract.paths import review_dir, reviewed_pdf
@@ -55,6 +56,18 @@ def test_locate_quote_spans_a_line_break_hyphen(contract_pdf):
 def test_locate_quote_ignores_case_and_punctuation(contract_pdf):
     words = extract(contract_pdf)["passages"][2]["words"]
     assert [words[i]["text"] for i in locate_quote(words, "segunda  FIANZA")] == ["SEGUNDA.", "Fianza."]
+
+
+def _words(text):
+    return [{"text": t, "x0": i, "x1": i + 1, "y0": 0, "y1": 1, "line": 0} for i, t in enumerate(text.split())]
+
+
+def test_locate_quote_respects_word_boundaries():
+    words = _words("La renta sera de 1.100 euros y los gastos de 100 euros.")
+    assert [words[i]["text"] for i in locate_quote(words, "100 euros")] == ["100", "euros."]
+    words = _words("El plazo corre desde tres meses atras, y es de tres meses.")
+    assert [words[i]["text"] for i in locate_quote(words, "de tres meses")] == ["de", "tres", "meses."]
+    assert locate_quote(_words("Se regula rentas antiguas."), "la renta") is None
 
 
 def test_locate_quote_takes_first_occurrence_and_handles_misses():
@@ -118,6 +131,7 @@ def test_summary_note(contract_pdf):
     assert "Passages not reviewed:" not in text
     assert "Pages skipped:\n- Page 3: no extractable text" in text
     assert text.endswith(DISCLAIMER)
+    assert ZERO_FINDINGS_NOTE not in text and not note.get("/Open", False).value
 
 
 def test_summary_lists_unreviewed_passages(contract_pdf):
@@ -149,6 +163,20 @@ def test_zero_findings_still_writes_summary(contract_pdf):
     assert highlights(out, 0) == []
     note = next(a for a in annots(out, 0) if a["/Subtype"] == "/Text")
     assert "Findings: 0 high, 0 medium, 0 low" in note["/Contents"]
+    lines = note["/Contents"].splitlines()
+    assert lines[1] == "Findings: 0 high, 0 medium, 0 low" and lines[2] == ZERO_FINDINGS_NOTE
+    assert note["/Open"].value is True
+
+
+def test_summary_note_sits_inside_an_inset_cropbox(tmp_path):
+    plain = make_pdf(tmp_path / "plain.pdf", CONTRACT_PAGES)
+    writer = PdfWriter(clone_from=str(plain))
+    writer.pages[0].cropbox = RectangleObject((50, 50, 545, 800))
+    pdf = tmp_path / "lease.pdf"
+    writer.write(str(pdf))
+    _, out, _ = run(pdf)
+    note = next(a for a in annots(out, 0) if a["/Subtype"] == "/Text")
+    assert [float(v) for v in note["/Rect"]] == [505, 760, 525, 780]
 
 
 def test_source_file_is_untouched(contract_pdf):
@@ -200,6 +228,13 @@ def test_main_with_a_missing_contract(contract_pdf, monkeypatch, capsys):
     contract_pdf.unlink()
     code, out = cli(monkeypatch, capsys, str(contract_pdf))
     assert code == 1 and "File not found" in out
+
+
+def test_main_with_unreadable_review_data(contract_pdf, monkeypatch, capsys):
+    prepared(contract_pdf)
+    (review_dir(contract_pdf) / "passages.json").write_text("[1, 2]")
+    code, out = cli(monkeypatch, capsys, str(contract_pdf))
+    assert code == 1 and "is unreadable" in out and "/review-contract" in out
 
 
 def test_main_check_validates_without_writing(contract_pdf, monkeypatch, capsys):

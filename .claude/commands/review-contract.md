@@ -14,7 +14,7 @@ uv run python -m src.contract.extract "<pdf>" --status
 
 - If the command exits with an error (for example `File not found`), relay the message and stop.
 - `reviewed` and no `--force`: tell the user a review already exists, give the path of `<stem>.reviewed.pdf`, mention `/contract-qa` for questions and `--force` to redo it, and stop.
-- `no-review`, `changed`, or `--force`: continue.
+- `no-review`, `incomplete` (an earlier run wrote findings but never produced the PDF), `changed`, or `--force`: continue.
 
 ## Step 2 — Read the contract into passages
 
@@ -23,6 +23,8 @@ uv run python -m src.contract.extract "<pdf>"
 ```
 
 If it exits with an error, relay the message and stop. Otherwise note the passage count and any skipped pages.
+
+If the contract file sits inside this git repository, tell the user once that the contract itself is not git-ignored (only `<stem>.review/` and `<stem>.reviewed.pdf` are) and should be kept out of commits.
 
 ## Step 3 — Output language
 

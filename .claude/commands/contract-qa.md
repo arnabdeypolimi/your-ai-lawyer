@@ -12,6 +12,7 @@ uv run python -m src.contract.extract "<pdf>" --status
 
 - If the command exits with an error (for example `File not found`), relay the message and stop.
 - `no-review`: tell the user to run `/review-contract "<pdf>"` first, and stop.
+- `incomplete`: tell the user the earlier review was never finished and to run `/review-contract "<pdf>"` again, and stop.
 - `changed`: tell the user the contract has changed since it was reviewed and to re-run `/review-contract`, and stop.
 - `reviewed`: read `<dir>/<stem>.review/passages.txt` and `<dir>/<stem>.review/findings.json`.
 

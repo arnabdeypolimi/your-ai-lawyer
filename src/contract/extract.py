@@ -10,14 +10,17 @@ import pdfplumber
 import pypdf
 from rich.console import Console
 
-from src.contract.paths import file_md5, resolve_pdf, review_dir
+from src.contract.paths import file_md5, resolve_pdf, review_dir, reviewed_pdf
 
 MAX_PASSAGE_CHARS = 1200
 SKIP_REASONS = {"no_text": "no extractable text", "rotated": "rotated page"}
 
 _LINE_TOP_TOLERANCE = 3
 _GAP_RATIO = 0.8
+_WIDE_GAP_FACTOR = 1.5
+_MIN_GAP_FACTOR = 0.5
 _CLAUSE_RE = re.compile(r"^\d+(\.\d+)*[.)]\s")
+_SENTENCE_END_RE = re.compile(r"[.:;?!]$")
 
 console = Console()
 
@@ -80,8 +83,19 @@ def _passage(page_no: int, passage_lines: list[list[dict]]) -> dict:
     }
 
 
+def _base_gap(lines: list[list[dict]]) -> float:
+    gaps = []
+    for prev, line in zip(lines, lines[1:]):
+        prev_y0, _ = _line_box(prev)
+        _, y1 = _line_box(line)
+        if prev_y0 - y1 > 0:
+            gaps.append(prev_y0 - y1)
+    return sorted(gaps)[len(gaps) // 4] if len(gaps) >= 3 else 0
+
+
 def _split_passages(page_no: int, lines: list[list[dict]]) -> list[dict]:
     passages, current = [], []
+    base_gap = _base_gap(lines)
     for line in lines:
         text = _line_text(line)
         if current:
@@ -91,7 +105,8 @@ def _split_passages(page_no: int, lines: list[list[dict]]) -> list[dict]:
             gap = prev_y0 - y1
             candidate = " ".join(map(_line_text, [*current, line]))
             starts_new = (
-                gap > _GAP_RATIO * prev_height
+                gap > max(_WIDE_GAP_FACTOR * base_gap, _MIN_GAP_FACTOR * prev_height)
+                or (gap > _GAP_RATIO * prev_height and _SENTENCE_END_RE.search(_line_text(current[-1])))
                 or _CLAUSE_RE.match(text)
                 or len(candidate) > MAX_PASSAGE_CHARS
             )
@@ -112,9 +127,11 @@ def extract(pdf: Path) -> dict:
     pdf = Path(pdf)
     if not pdf.exists():
         raise ExtractError(f"File not found: {pdf}")
+    if not pdf.is_file():
+        raise ExtractError(f"Not a PDF: {pdf}")
     try:
         reader = pypdf.PdfReader(str(pdf))
-    except pypdf.errors.PyPdfError:
+    except (pypdf.errors.PyPdfError, OSError):
         raise ExtractError(f"Not a PDF: {pdf}")
     if reader.is_encrypted:
         raise ExtractError(f"Encrypted PDF is not supported: {pdf}")
@@ -165,18 +182,28 @@ def render_text(doc: dict) -> str:
     return "\n".join(lines) + "\n\n" + body + "\n"
 
 
+def _stored_md5(json_path: Path) -> str | None:
+    try:
+        data = json.loads(json_path.read_text())
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    md5 = data.get("source_md5")
+    return md5 if isinstance(md5, str) else None
+
+
 def write_outputs(pdf: Path, doc: dict) -> tuple[Path, Path]:
     out_dir = review_dir(Path(pdf))
     json_path = out_dir / "passages.json"
     txt_path = out_dir / "passages.txt"
     findings = out_dir / "findings.json"
-    if json_path.exists() and findings.exists():
-        if json.loads(json_path.read_text()).get("source_md5") != doc["source_md5"]:
-            findings.unlink()
-            console.print(
-                "Removed stale findings.json (the contract changed).",
-                markup=False, highlight=False, soft_wrap=True,
-            )
+    if findings.exists() and _stored_md5(json_path) != doc["source_md5"]:
+        findings.unlink()
+        console.print(
+            "Removed stale findings.json (the contract changed).",
+            markup=False, highlight=False, soft_wrap=True,
+        )
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(doc, indent=2, ensure_ascii=False))
     txt_path.write_text(render_text(doc))
@@ -190,11 +217,12 @@ def review_status(pdf: Path) -> str:
     findings = review_dir(pdf) / "findings.json"
     if not findings.exists():
         return "no-review"
-    passages = review_dir(pdf) / "passages.json"
-    if not passages.exists():
+    if _stored_md5(review_dir(pdf) / "passages.json") != file_md5(pdf):
         return "changed"
-    stored = json.loads(passages.read_text()).get("source_md5")
-    return "reviewed" if stored == file_md5(pdf) else "changed"
+    out = reviewed_pdf(pdf)
+    if not out.exists() or out.stat().st_mtime < findings.stat().st_mtime:
+        return "incomplete"
+    return "reviewed"
 
 
 def main() -> None:

@@ -114,6 +114,7 @@ def test_chroma_citation_index_finds_articles_written_as_plain_lines(tmp_path, m
     law.write_text(
         "# Ley\n\nArtículo 1.\n\nUno, según el\nartículo 7 de otra ley.\n\nArtículo 15 bis.\n\nQuince bis.\n\n"
         "##### Artículo 20.\n\nVeinte.\n\nArtículo 3.º\n\nTres.\n\n**Artículo 4.**\n\nCuatro.\n"
+        "Artículo 621-1.\n\nSeiscientos.\n"
     )
     monkeypatch.setattr(search, "ROOT", tmp_path)
     client = chromadb.PersistentClient(path=str(tmp_path / "chroma"))
@@ -123,9 +124,21 @@ def test_chroma_citation_index_finds_articles_written_as_plain_lines(tmp_path, m
     raw.add(ids=["raw:BOE-A-4:chunk0"], embeddings=[[0.1, 0.2, 0.3]], documents=["x"],
             metadatas=[{"identifier": "BOE-A-4", "source_path": "legalize-es/es-ct/missing.md"}])
     index = ChromaCitationIndex(tmp_path / "chroma")
-    for article in ("1", "15 bis", "15", "20", "3", "4"):
+    for article in ("1", "15 bis", "20", "3", "4", "621-1"):
         assert index.has_article("BOE-A-3", article), article
-    for article in ("2", "5", "7", "150"):
+    for article in ("2", "5", "7", "150", "15", "621"):
         assert not index.has_article("BOE-A-3", article), article
     assert not index.has_article("BOE-A-4", "1")       # source file missing
     assert not index.has_article("BOE-A-9", "1")       # law not indexed
+
+
+def test_unknown_law_reports_one_problem_even_with_an_article():
+    review = make_review()
+    review["findings"][0]["citations"][0]["identifier"] = "BOE-X"
+    assert validate(review, IDS, StubIndex()) == ["findings[0].citations[0]: BOE-X is not in the index"]
+
+
+def test_load_review_rejects_non_utf8(tmp_path):
+    (tmp_path / "findings.json").write_bytes(b'{"summary": "caf\xe9"}')
+    with pytest.raises(FindingsError, match="not valid JSON"):
+        load_review(tmp_path / "findings.json")

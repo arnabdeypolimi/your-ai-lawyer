@@ -47,7 +47,8 @@ class ChromaCitationIndex:
         if not source.exists():
             return False
         pattern = re.compile(
-            rf"^(?:#{{1,6}}\s+)?\**Art[ií]culo\s+{re.escape(str(article))}(?!\d)", re.MULTILINE
+            rf"^(?:#{{1,6}}\s+)?\**Art[ií]culo\s+{re.escape(str(article))}"
+            rf"(?!\d|[.-]\d|\s+(?:bis|ter|quater|quinquies)\b)", re.MULTILINE
         )
         return bool(pattern.search(source.read_text()))
 
@@ -61,7 +62,7 @@ def load_review(path: Path) -> dict:
         raise FindingsError(f"No findings.json at {path}")
     try:
         return json.loads(path.read_text())
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise FindingsError(f"{path} is not valid JSON: {exc}")
 
 
@@ -85,6 +86,7 @@ def _check_citation(citation, loc: str, index: CitationIndex, problems: list[str
         return
     if not index.has_law(ident):
         problems.append(f"{loc}: {ident} is not in the index")
+        return
     article = citation.get("article")
     if article is not None:
         if not index.has_articles():
