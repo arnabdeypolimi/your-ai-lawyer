@@ -70,3 +70,40 @@ CONTRACT_PAGES = [
 @pytest.fixture
 def contract_pdf(tmp_path):
     return make_pdf(tmp_path / "lease.pdf", CONTRACT_PAGES)
+
+
+class StubIndex:
+    def __init__(self, laws=("BOE-A-1994-26003", "BOE-A-2013-3904"), articles=(("BOE-A-1994-26003", "36"),)):
+        self.laws, self.articles = set(laws), set(articles)
+
+    def has_law(self, identifier):
+        return identifier in self.laws
+
+    def has_article(self, identifier, article):
+        return (identifier, article) in self.articles
+
+    def has_articles(self):
+        return bool(self.articles)
+
+
+def make_review():
+    return {
+        "language": "en",
+        "country": "es",
+        "contract_type": "residential lease",
+        "summary": "One clause conflicts with the law.",
+        "findings": [
+            {"passage": 3, "quote": "fianza de tres mensualidades", "confidence": "high",
+             "issue": "Deposit exceeds the legal maximum", "comment": "Tres meses > un mes. ñ €",
+             "citations": [{"identifier": "BOE-A-1994-26003", "article": "36", "title": "Ley 29/1994"}]},
+            {"passage": 2, "quote": None, "confidence": "medium",
+             "issue": "Unclear object", "comment": "The dwelling is not identified.",
+             "citations": [{"identifier": "BOE-A-1994-26003"}]},
+            {"passage": 6, "quote": "words that are not in the passage", "confidence": "low",
+             "issue": "Short term", "comment": "Check the minimum term.", "citations": []},
+        ],
+        "omissions": [{"issue": "No energy certificate", "comment": "It must be attached.",
+                       "citations": [{"identifier": "BOE-A-2013-3904"}]}],
+        "not_covered": ["Pets clause (passage 5): no relevant law in the knowledge base"],
+        "unreviewed": [],
+    }
