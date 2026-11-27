@@ -15,7 +15,7 @@
 
 Una base de conocimiento jurídico que cita el texto original de verdad.
 
-[Comandos Slash](#comandos-slash) • [Arquitectura](#arquitectura) • [Añadir Países](#añadir-un-nuevo-país) • [Seguimiento](#seguimiento) • [Issues](https://github.com/arnabdeypolimi/your-ai-lawyer/issues)
+[Comandos Slash](#comandos-slash) • [Revisión de Contratos](#revisión-de-contratos) • [Arquitectura](#arquitectura) • [Añadir Países](#añadir-un-nuevo-país) • [Seguimiento](#seguimiento) • [Issues](https://github.com/arnabdeypolimi/your-ai-lawyer/issues)
 
 </div>
 
@@ -42,6 +42,7 @@ España está lista (12 000+ leyes del BOE). 27 países más están a un `git su
 - El resultado es una bóveda válida de Obsidian. Ábrela en Obsidian y ahí tienes el grafo.
 - Dos colecciones ChromaDB: una para los resúmenes compilados, otra para fragmentos de artículos originales. Las consultas buscan en ambas.
 - `/qa` responde en prosa con citas del tipo `[BOE-A-XXXX-XXXXX, Art. N]`. Puedes saltar al texto original.
+- `/review-contract lease.pdf` revisa un contrato contra las leyes indexadas y te devuelve una copia con las cláusulas conflictivas resaltadas y citadas. `/contract-qa` responde después a tus preguntas sobre él.
 - Al recompilar se omiten los archivos que no han cambiado (comprobación por hash md5). Cada ejecución queda registrada.
 - `/lint` detecta huérfanos, wikilinks rotos y notas sin rastrear.
 
@@ -120,9 +121,9 @@ Luego subes. Solo las constitucionales son unos 50 archivos; toda España son 12
 /contract-qa ~/Downloads/lease.pdf ¿Puede el arrendador quedarse con toda la fianza?
 ```
 
-Obtienes `lease.reviewed.pdf` junto al original. Las cláusulas que chocan con una ley de la base de conocimiento aparecen resaltadas: rojo para confianza alta, naranja para media y amarillo para baja. Cada resaltado lleva un comentario con la cita, y una nota en la página 1 recoge los términos que faltan, los temas que la base de conocimiento no cubre y las páginas que no se pudieron leer. El archivo original nunca se modifica. Los datos de la revisión se guardan en `lease.review/` para poder hacer preguntas más adelante.
+Obtienes `lease.reviewed.pdf` junto al original, con las cláusulas que chocan con una ley de la base de conocimiento resaltadas y un comentario en cada una que cita la ley. El archivo original nunca se modifica.
 
-Solo conoce las leyes que tengas en el índice. Un contrato con pocos resaltados no es necesariamente un contrato correcto; revisa la lista de temas no cubiertos. Solo PDF con texto: las páginas escaneadas se omiten. Esto no es asesoramiento jurídico.
+Necesita el índice del paso anterior y solo funciona con PDF con texto. [Revisión de Contratos](#revisión-de-contratos) explica qué significan los colores y qué no detecta. Esto no es asesoramiento jurídico.
 
 ### Comprobación rápida
 
@@ -148,6 +149,52 @@ Solo conoce las leyes que tengas en el índice. Un contrato con pocos resaltados
 | `/contract-qa <pdf> <pregunta>` | Preguntas de seguimiento sobre un contrato ya revisado |
 
 Códigos regionales de España: `es` para nacional, más `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc` para las 17 comunidades autónomas.
+
+---
+
+## Revisión de Contratos
+
+```bash
+/review-contract ~/Downloads/lease.pdf                 # revisarlo
+/review-contract ~/Downloads/lease.pdf --country es    # indicar qué país rige el contrato
+/review-contract ~/Downloads/lease.pdf --force         # rehacer una revisión existente
+/contract-qa ~/Downloads/lease.pdf ¿Puede el arrendador quedarse con toda la fianza?
+```
+
+Claude lee el contrato cláusula a cláusula, busca en el índice la ley aplicable a cada punto, lee el artículo y anota dónde chocan.
+
+### Qué recibes
+
+| Archivo | Contenido |
+|---------|-----------|
+| `lease.reviewed.pdf` | Una copia del contrato con un resaltado por hallazgo. Cada resaltado lleva un comentario: el problema, la explicación y la cita. En la esquina superior derecha de la página 1 va adjunta una nota de resumen, que se ve como un pequeño cuadrado azul |
+| `lease.review/findings.json` | La revisión en sí: hallazgos, términos que faltan y temas que la base de conocimiento no cubre |
+| `lease.review/passages.txt` | El contrato dividido en pasajes numerados, a los que se refieren los hallazgos y `/contract-qa` (`[¶14, p.2]`) |
+
+### Qué significan los colores
+
+| Color | Confianza | Significado |
+|-------|-----------|-------------|
+| Rojo | alta (`high`) | La cláusula contradice un artículo concreto tal como está escrito. Siempre cita ese artículo |
+| Naranja | media (`medium`) | Probablemente choca, pero depende de hechos o de una interpretación que el contrato no resuelve, o la ley puede no estar ya en vigor |
+| Amarillo | baja (`low`) | Merece una segunda lectura; la ley encontrada solo guarda una relación lejana |
+
+Cada comentario empieza además por `[HIGH]`, `[MEDIUM]` o `[LOW]`, así que el color nunca es la única señal.
+
+### Qué lo mantiene honesto
+
+- **Las citas se comprueban antes de escribir el PDF.** La ley citada tiene que estar en el índice, y el artículo citado tiene que existir en el texto de esa ley. Una referencia inventada detiene la ejecución.
+- **Sin conjeturas.** Un tema para el que la base de conocimiento no tiene ley aparece como «no cubierto» en la nota de resumen. Una revisión sin hallazgos lo dice, y advierte de que la ausencia de resaltados no significa que el contrato sea correcto.
+- **Nada se omite en silencio.** Las páginas que no se pudieron leer y los pasajes que no se revisaron aparecen en la nota de resumen.
+- **Tu contrato nunca se modifica.** Si el archivo cambia después de una revisión, los hallazgos antiguos se descartan y la siguiente ejecución empieza de nuevo.
+
+### Límites
+
+- **Solo conoce las leyes que tengas en el índice.** Un contrato con pocos resaltados no es necesariamente un contrato correcto; revisa la lista de temas no cubiertos.
+- **Los hallazgos en rojo necesitan las leyes originales.** Las citas a artículos se comprueban contra los archivos de ley en `legalize-<país>/`. Si solo están indexadas las notas compiladas, los hallazgos se quedan en naranja.
+- **Solo PDF con texto.** Las páginas escaneadas y las giradas se omiten. No hay OCR.
+- **Las etiquetas de la herramienta están en inglés** (`[HIGH]`, los encabezados del resumen). El texto de la revisión sigue el idioma de `/setup`.
+- **`*.review/` y `*.reviewed.pdf` están en `.gitignore`; el contrato no.** Guarda los contratos fuera de este repositorio, o fuera de tus commits.
 
 ---
 
@@ -192,6 +239,29 @@ data/chroma/
           │
           ▼  /qa o /search
   citas: [BOE-A-XXXX-XXXXX, Art. N]
+```
+
+### Pipeline de revisión de contratos
+
+```
+lease.pdf
+          │
+          ▼  src/contract/extract.py (sin modelo)
+          │
+lease.review/passages.txt
+  pasajes numerados + posición de cada palabra
+          │
+          ▼  /review-contract (Claude Code lee y escribe directamente)
+          │   search.py      →  encuentra el texto legal para cada cláusula
+          │   legalize-*/    →  el artículo se lee completo antes de valorar
+          │
+lease.review/findings.json
+          │
+          ▼  src/contract/annotate.py (sin modelo)
+          │   comprueba cada cita contra el índice y el texto de la ley
+          │
+lease.reviewed.pdf
+  resaltados + comentarios + nota de resumen
 ```
 
 ### Cómo se ve una nota compilada
@@ -309,7 +379,7 @@ Sin [legalize-dev](https://github.com/legalize-dev) nada de esto funciona. Ellos
 
 ## Condiciones de Uso
 
-Esto no es asesoramiento legal. No soy abogado. Los resúmenes compilados y las respuestas de Q&A las genera un modelo de lenguaje a partir de fuentes gubernamentales públicas, que pueden estar desactualizadas o incompletas, y el modelo se puede equivocar. Si estás tomando una decisión que importa, habla con un abogado de verdad y verifícalo contra la fuente original a la que apuntan las citas.
+Esto no es asesoramiento legal. No soy abogado. Los resúmenes compilados, las respuestas de Q&A y las revisiones de contratos los genera un modelo de lenguaje a partir de fuentes gubernamentales públicas, que pueden estar desactualizadas o incompletas, y el modelo se puede equivocar. Si estás tomando una decisión que importa, habla con un abogado de verdad y verifícalo contra la fuente original a la que apuntan las citas.
 
 Al usar esto aceptas que:
 - Los mantenedores no son responsables de lo que salga mal

@@ -15,7 +15,7 @@
 
 A legal knowledge base that actually cites the source text.
 
-[Slash Commands](#slash-commands) • [Architecture](#architecture) • [Adding Countries](#adding-a-new-country) • [Tracking](#tracking) • [Issues](https://github.com/arnabdeypolimi/your-ai-lawyer/issues)
+[Slash Commands](#slash-commands) • [Contract Review](#contract-review) • [Architecture](#architecture) • [Adding Countries](#adding-a-new-country) • [Tracking](#tracking) • [Issues](https://github.com/arnabdeypolimi/your-ai-lawyer/issues)
 
 </div>
 
@@ -42,6 +42,7 @@ Spain is wired up (12,000+ laws from the BOE). 27 more countries are one `git su
 - Output is a valid Obsidian vault. Open it in Obsidian and the graph is there.
 - Two ChromaDB collections: one for the compiled summaries, one for raw article chunks. Queries hit both.
 - `/qa` answers in prose with `[BOE-A-XXXX-XXXXX, Art. N]` citations. You can click through to the original.
+- `/review-contract lease.pdf` checks a contract against the indexed laws and gives you back a copy with the conflicting clauses highlighted and cited. `/contract-qa` answers questions about it afterwards.
 - Recompiles skip files that haven't changed (md5 hash check). Every run is logged.
 - `/lint` flags orphans, broken wikilinks, and untracked notes.
 
@@ -120,9 +121,9 @@ Then scale up. Constitutional-only is ~50 files; all of Spain is 12k+ and you'll
 /contract-qa ~/Downloads/lease.pdf Can the landlord keep the whole deposit?
 ```
 
-You get `lease.reviewed.pdf` next to the original. Clauses that conflict with a law in the knowledge base are highlighted: red for high confidence, orange for medium, yellow for low. Each highlight carries a comment with the citation, and a note on page 1 lists missing terms, topics the knowledge base does not cover, and pages that could not be read. The original file is never changed. Review data is kept in `lease.review/` so you can ask questions later.
+You get `lease.reviewed.pdf` next to the original, with the clauses that conflict with a law in the knowledge base highlighted and a comment on each one citing the law. The original file is never changed.
 
-It only knows the laws in your index. A contract with few highlights is not necessarily a sound contract; check the "not covered" list. Text PDFs only: scanned pages are skipped. This is not legal advice.
+It needs the index from the previous step and works on text PDFs only. [Contract Review](#contract-review) explains what the colours mean and what it will not catch. This is not legal advice.
 
 ### Sanity check
 
@@ -148,6 +149,52 @@ It only knows the laws in your index. A contract with few highlights is not nece
 | `/contract-qa <pdf> <question>` | Ask follow-up questions about a reviewed contract |
 
 Spain's regional codes: `es` for national, plus `es-ct`, `es-md`, `es-an`, `es-pv`, `es-ga`, `es-vc`, `es-ib`, `es-ar`, `es-cn`, `es-cl`, `es-cm`, `es-cb`, `es-as`, `es-ri`, `es-nc`, `es-mc` for the 17 autonomous communities.
+
+---
+
+## Contract Review
+
+```bash
+/review-contract ~/Downloads/lease.pdf                 # review it
+/review-contract ~/Downloads/lease.pdf --country es    # say which country's law governs it
+/review-contract ~/Downloads/lease.pdf --force         # redo an existing review
+/contract-qa ~/Downloads/lease.pdf Can the landlord keep the whole deposit?
+```
+
+Claude reads the contract clause by clause, searches the index for the law on each point, reads the article itself, and records where the two conflict.
+
+### What you get back
+
+| File | Contents |
+|------|----------|
+| `lease.reviewed.pdf` | A copy of the contract with one highlight per finding. Each highlight carries a comment: the issue, the explanation and the citation. A summary note is attached at the top right of page 1, shown as a small blue square |
+| `lease.review/findings.json` | The review itself: findings, missing terms, and topics the knowledge base does not cover |
+| `lease.review/passages.txt` | The contract split into numbered passages, which is what the findings and `/contract-qa` refer to (`[¶14, p.2]`) |
+
+### What the colours mean
+
+| Colour | Confidence | Meaning |
+|--------|------------|---------|
+| Red | high | The clause contradicts a specific article as written. Always cites that article |
+| Orange | medium | It probably conflicts, but that depends on facts or interpretation the contract does not settle, or the law may no longer be in force |
+| Yellow | low | Worth a second look; the law found is only loosely on point |
+
+Every comment also starts with `[HIGH]`, `[MEDIUM]` or `[LOW]`, so the colour is never the only signal.
+
+### What keeps it honest
+
+- **Citations are checked before the PDF is written.** The cited law must be in the index, and a cited article must exist in that law's text. An invented reference stops the run.
+- **No guessing.** A topic the knowledge base has no law for is listed as "not covered" in the summary note. A review with no findings says so, and says that no highlights does not mean the contract is sound.
+- **Nothing is skipped silently.** Pages that could not be read and passages that were not reviewed are listed in the summary note.
+- **Your contract is never modified.** If the file changes after a review, the old findings are discarded and the next run starts again.
+
+### Limits
+
+- **It only knows the laws in your index.** A contract with few highlights is not necessarily a sound contract; check the "not covered" list.
+- **Red findings need the raw laws.** Article-level citations are checked against the law files in `legalize-<country>/`. With only compiled notes indexed, findings stop at orange.
+- **Text PDFs only.** Scanned and rotated pages are skipped. There is no OCR.
+- **The tool's own labels are in English** (`[HIGH]`, the summary headings). The review text follows your `/setup` language.
+- **`*.review/` and `*.reviewed.pdf` are git-ignored; the contract itself is not.** Keep contracts outside this repository, or out of your commits.
 
 ---
 
@@ -192,6 +239,29 @@ data/chroma/
           │
           ▼  /qa or /search
   citations: [BOE-A-XXXX-XXXXX, Art. N]
+```
+
+### Contract review pipeline
+
+```
+lease.pdf
+          │
+          ▼  src/contract/extract.py (no model)
+          │
+lease.review/passages.txt
+  numbered passages + word positions
+          │
+          ▼  /review-contract (Claude Code reads + writes directly)
+          │   search.py      →  finds the law text for each clause
+          │   legalize-*/    →  the article is read in full before judging
+          │
+lease.review/findings.json
+          │
+          ▼  src/contract/annotate.py (no model)
+          │   checks every citation against the index and the law text
+          │
+lease.reviewed.pdf
+  highlights + comments + summary note
 ```
 
 ### What a compiled note looks like
@@ -309,7 +379,7 @@ None of this works without [legalize-dev](https://github.com/legalize-dev). They
 
 ## Terms of Use
 
-This is not legal advice. I'm not a lawyer. The compiled summaries and Q&A answers are generated by a language model from publicly available government sources, which can be outdated or incomplete, and the model can be wrong. If you're making a decision that matters, talk to an actual lawyer and verify against the original source the citations point to.
+This is not legal advice. I'm not a lawyer. The compiled summaries, Q&A answers and contract reviews are generated by a language model from publicly available government sources, which can be outdated or incomplete, and the model can be wrong. If you're making a decision that matters, talk to an actual lawyer and verify against the original source the citations point to.
 
 By using this you accept that:
 - The maintainers aren't liable for anything that goes wrong
