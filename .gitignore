@@ -6,3 +6,5 @@ __pycache__/
 knowledge/.obsidian/workspace.json
 *.review/
 *.reviewed.pdf
+docs/superpowers/
+.superpowers/
