@@ -203,3 +203,22 @@ def test_corrupt_passages_json_does_not_block_a_new_extract(contract_pdf):
     write_outputs(contract_pdf, extract(contract_pdf))
     assert not (rdir / "findings.json").exists()
     assert json.loads((rdir / "passages.json").read_text())["page_count"] == 3
+
+
+def test_page_header_in_a_smaller_font_is_its_own_passage(tmp_path):
+    header = [(72, 800, "27/11/26 Contrato de trabajo", 7)]
+    body = [(72, 772 - 28 * i, f"Linea {i} del cuerpo del contrato sin punto final") for i in range(5)]
+    doc = extract(make_pdf(tmp_path / "header.pdf", [header + body]))
+    assert [p["text"].split()[0] for p in doc["passages"]] == ["27/11/26", "Linea"]
+    assert len({w["line"] for w in doc["passages"][1]["words"]}) == 5
+
+
+def test_findings_are_dropped_when_the_passages_change(contract_pdf):
+    json_path, _ = write_outputs(contract_pdf, extract(contract_pdf))
+    findings = review_dir(contract_pdf) / "findings.json"
+    findings.write_text("{}")
+    stored = json.loads(json_path.read_text())
+    stored["passages"][2]["text"] = "segmented differently by an older version"
+    json_path.write_text(json.dumps(stored))
+    write_outputs(contract_pdf, extract(contract_pdf))         # same PDF, different passages
+    assert not findings.exists()

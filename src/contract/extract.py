@@ -19,6 +19,7 @@ _LINE_TOP_TOLERANCE = 3
 _GAP_RATIO = 0.8
 _WIDE_GAP_FACTOR = 1.5
 _MIN_GAP_FACTOR = 0.5
+_FONT_CHANGE_RATIO = 0.2
 _CLAUSE_RE = re.compile(r"^\d+(\.\d+)*[.)]\s")
 _SENTENCE_END_RE = re.compile(r"[.:;?!]$")
 
@@ -101,12 +102,14 @@ def _split_passages(page_no: int, lines: list[list[dict]]) -> list[dict]:
         if current:
             prev_y0, prev_y1 = _line_box(current[-1])
             prev_height = max(prev_y1 - prev_y0, 1)
-            _, y1 = _line_box(line)
+            y0, y1 = _line_box(line)
+            height = y1 - y0
             gap = prev_y0 - y1
             candidate = " ".join(map(_line_text, [*current, line]))
             starts_new = (
                 gap > max(_WIDE_GAP_FACTOR * base_gap, _MIN_GAP_FACTOR * prev_height)
                 or (gap > _GAP_RATIO * prev_height and _SENTENCE_END_RE.search(_line_text(current[-1])))
+                or abs(height - prev_height) > _FONT_CHANGE_RATIO * max(height, prev_height)
                 or _CLAUSE_RE.match(text)
                 or len(candidate) > MAX_PASSAGE_CHARS
             )
@@ -182,14 +185,17 @@ def render_text(doc: dict) -> str:
     return "\n".join(lines) + "\n\n" + body + "\n"
 
 
-def _stored_md5(json_path: Path) -> str | None:
+def _load_passages_doc(json_path: Path) -> dict | None:
     try:
         data = json.loads(json_path.read_text())
     except (OSError, ValueError):
         return None
-    if not isinstance(data, dict):
-        return None
-    md5 = data.get("source_md5")
+    return data if isinstance(data, dict) else None
+
+
+def _stored_md5(json_path: Path) -> str | None:
+    doc = _load_passages_doc(json_path)
+    md5 = doc.get("source_md5") if doc else None
     return md5 if isinstance(md5, str) else None
 
 
@@ -198,10 +204,18 @@ def write_outputs(pdf: Path, doc: dict) -> tuple[Path, Path]:
     json_path = out_dir / "passages.json"
     txt_path = out_dir / "passages.txt"
     findings = out_dir / "findings.json"
-    if findings.exists() and _stored_md5(json_path) != doc["source_md5"]:
+    old = _load_passages_doc(json_path)
+    old_passages = old.get("passages") if old else None
+    same = (
+        isinstance(old_passages, list)
+        and old.get("source_md5") == doc["source_md5"]
+        and [(p.get("id"), p.get("text")) for p in old_passages]
+        == [(p["id"], p["text"]) for p in doc["passages"]]
+    )
+    if findings.exists() and not same:
         findings.unlink()
         console.print(
-            "Removed stale findings.json (the contract changed).",
+            "Removed stale findings.json (the contract or its passages changed).",
             markup=False, highlight=False, soft_wrap=True,
         )
     out_dir.mkdir(parents=True, exist_ok=True)

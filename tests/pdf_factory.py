@@ -28,9 +28,11 @@ def make_pdf(path, pages, rotate=None, origin=(0, 0)):
             {NameObject("/Font"): DictionaryObject({NameObject("/F1"): font})}
         )
         ops = []
-        for x, y, text in lines:
+        for line in lines:
+            x, y, text = line[:3]
+            size = line[3] if len(line) > 3 else 11
             esc = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-            ops.append(f"BT /F1 11 Tf {x + ox} {y + oy} Td ({esc}) Tj ET")
+            ops.append(f"BT /F1 {size} Tf {x + ox} {y + oy} Td ({esc}) Tj ET")
         stream = DecodedStreamObject()
         stream.set_data("\n".join(ops).encode("cp1252"))
         page[NameObject("/Contents")] = writer._add_object(stream)
