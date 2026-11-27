@@ -69,7 +69,8 @@ def _check_citation(citation, loc: str, index: CitationIndex, problems: list[str
     ident = citation.get("identifier")
     if not _non_blank(ident):
         problems.append(f"{loc}: identifier must be a non-empty string")
-    elif not index.has_law(ident):
+        return
+    if not index.has_law(ident):
         problems.append(f"{loc}: {ident} is not in the index")
     article = citation.get("article")
     if article is not None:

@@ -98,3 +98,10 @@ def test_chroma_citation_index(tmp_path):
 def test_chroma_citation_index_without_an_index(tmp_path):
     with pytest.raises(FindingsError, match="Index not found. Run /index first."):
         ChromaCitationIndex(tmp_path / "nope")
+
+
+def test_citation_without_identifier_reports_one_problem():
+    review = make_review()
+    review["findings"][1]["citations"] = [{"identifier": "", "article": "5"}]
+    problems = validate(review, IDS, StubIndex())
+    assert problems == ["findings[1].citations[0]: identifier must be a non-empty string"]
